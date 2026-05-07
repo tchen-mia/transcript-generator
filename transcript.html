@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Homeschool Transcript Generator | Miacademy</title>
+  <meta name="description" content="Free homeschool transcript generator for Miacademy families. Enter your student's courses and download a professional PDF transcript — no account required." />
+  <meta property="og:title" content="Homeschool Transcript Generator | Miacademy" />
+  <meta property="og:description" content="Free tool for Miacademy families. Generate a professional homeschool transcript PDF in minutes — no account required." />
+  <meta property="og:type" content="website" />
+
+  <style>
+    :root {
+      --teal:       #2D7272;
+      --teal-dark:  #1E5050;
+      --teal-light: #E8F4F4;
+      --text:       #1a1a1a;
+      --muted:      #666;
+      --bg:         #F5F7F7;
+      --white:      #fff;
+      --border:     #d0dede;
+      --radius:     8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    /* ── Header ── */
+    .site-header {
+      background: var(--teal);
+      color: #fff;
+      padding: 28px 20px 32px;
+      text-align: center;
+    }
+    .header-brand {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.75;
+      margin-bottom: 6px;
+    }
+    .site-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+    .header-sub     { font-size: 14px; opacity: 0.88; max-width: 540px; margin: 0 auto; }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 24px 20px 56px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 24px;
+      border: 1px solid var(--border);
+    }
+    .step-label {
+      display: inline-block;
+      background: var(--teal-light);
+      color: var(--teal-dark);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 20px;
+      margin-bottom: 9px;
+    }
+    .card h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--teal-dark);
+      margin-bottom: 16px;
+    }
+
+    /* ── Student info grid ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 13px;
+      margin-bottom: 12px;
+    }
+    .span-2 { grid-column: span 2; }
+    .span-3 { grid-column: span 3; }
+
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 12px; font-weight: 600; color: var(--muted); }
+    .field input,
+    .field select {
+      padding: 8px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      color: var(--text);
+      background: #FAFFFF;
+      transition: border-color 0.15s;
+    }
+    .field input:focus,
+    .field select:focus { outline: none; border-color: var(--teal); background: var(--white); }
+
+    .tip  { font-size: 12px; color: var(--muted); font-style: italic; }
+    .note { font-size: 13px; color: var(--muted); margin-bottom: 14px; line-height: 1.6; }
+
+    /* ── Course table ── */
+    .table-scroll {
+      overflow-x: auto;
+      margin-bottom: 13px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .course-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .course-table thead tr  { background: var(--teal); color: #fff; }
+    .course-table th        { padding: 9px 7px; text-align: left; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .course-table tbody tr  { border-bottom: 1px solid #eee; }
+    .course-table tbody tr:nth-child(even) { background: var(--teal-light); }
+    .course-table tbody tr:hover { background: #e5f2f2; }
+    .course-table td        { padding: 5px 5px; vertical-align: middle; }
+
+    .row-num   { color: var(--muted); font-size: 12px; text-align: center; width: 26px; }
+    .td-center { text-align: center; }
+    .td-credits { text-align: center; font-weight: 600; color: var(--teal-dark); width: 52px; }
+
+    .input-course   { width: 185px; min-width: 140px; }
+    .input-grade    { width: 60px; text-align: center; }
+    .input-duration { min-width: 130px; background: var(--white); }
+
+    .input-course,
+    .input-grade,
+    .input-date,
+    .input-duration {
+      padding: 5px 7px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      font-size: 12px;
+      color: var(--text);
+    }
+    .input-course:focus,
+    .input-grade:focus,
+    .input-date:focus,
+    .input-duration:focus { outline: none; border-color: var(--teal); }
+
+    .letter-badge {
+      display: inline-block;
+      min-width: 28px;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+    .letter-badge.active { background: var(--teal-light); color: var(--teal-dark); }
+
+    .btn-remove {
+      background: none;
+      border: none;
+      color: #ccc;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 2px 5px;
+      border-radius: 4px;
+      line-height: 1;
+      transition: color 0.15s, background 0.15s;
+    }
+    .btn-remove:hover { color: #d44; background: #fff0f0; }
+
+    /* ── Buttons ── */
+    .btn-secondary {
+      background: none;
+      border: 1.5px solid var(--teal);
+      color: var(--teal);
+      padding: 7px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-secondary:hover { background: var(--teal-light); }
+
+    .btn-primary {
+      background: var(--teal);
+      color: #fff;
+      border: none;
+      padding: 13px 36px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      box-shadow: 0 2px 8px rgba(45,114,114,0.3);
+    }
+    .btn-primary:hover  { background: var(--teal-dark); }
+    .btn-primary:active { transform: scale(0.98); }
+
+    /* ── Summary ── */
+    .summary-card {
+      background: var(--teal);
+      color: #fff;
+      border-radius: 8px;
+      padding: 18px 24px;
+      display: flex;
+      gap: 28px;
+      align-items: center;
+    }
+    .summary-card.hidden { display: none; }
+    .summary-item { display: flex; flex-direction: column; gap: 2px; }
+    .summary-item span   { font-size: 11px; opacity: 0.82; }
+    .summary-item strong { font-size: 22px; font-weight: 700; }
+    .summary-div { width: 1px; height: 30px; background: rgba(255,255,255,0.3); }
+
+    /* ── Download ── */
+    .download-section { text-align: center; }
+    .download-note { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.8; }
+
+    /* ── Footer ── */
+    .site-footer {
+      background: var(--teal-dark);
+      color: rgba(255,255,255,0.72);
+      text-align: center;
+      padding: 18px 20px;
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .site-footer a { color: rgba(255,255,255,0.85); text-underline-offset: 3px; }
+    .site-footer a:hover { color: #fff; }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      .form-grid { grid-template-columns: 1fr 1fr; }
+      .span-3 { grid-column: span 2; }
+      .summary-card { flex-wrap: wrap; gap: 14px; }
+      .summary-div { display: none; }
+    }
+    @media (max-width: 460px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .span-2, .span-3 { grid-column: span 1; }
+      .site-header h1 { font-size: 21px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <p class="header-brand">Miacademy</p>
+  <h1>Homeschool Transcript Generator</h1>
+  <p class="header-sub">Fill in your student's info and courses, then download your transcript as a PDF — free, no account needed.</p>
+</header>
+
+<main class="container">
+
+  <!-- Step 1 ── Student & School Info -->
+  <section class="card">
+    <div class="step-label">Step 1</div>
+    <h2>Student &amp; School Information</h2>
+    <div class="form-grid">
+
+      <div class="field">
+        <label for="studentName">Student Name</label>
+        <input type="text" id="studentName" placeholder="e.g. Joanna Greenberg" />
+      </div>
+      <div class="field">
+        <label for="dob">Date of Birth</label>
+        <input type="date" id="dob" />
+      </div>
+      <div class="field">
+        <label for="gradeLevel">Grade Level</label>
+        <select id="gradeLevel">
+          <option value="">— Select —</option>
+          <option>Pre-K</option>
+          <option>Kindergarten</option>
+          <option>1st Grade</option>
+          <option>2nd Grade</option>
+          <option>3rd Grade</option>
+          <option>4th Grade</option>
+          <option>5th Grade</option>
+          <option>6th Grade</option>
+          <option>7th Grade</option>
+          <option>8th Grade</option>
+          <option>9th Grade</option>
+          <option>10th Grade</option>
+          <option>11th Grade</option>
+          <option>12th Grade</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="homeschoolName">Homeschool Name</label>
+        <input type="text" id="homeschoolName" placeholder="e.g. Smith Homeschool" />
+      </div>
+      <div class="field">
+        <label for="schoolYear">School Year</label>
+        <input type="text" id="schoolYear" placeholder="e.g. 2025-2026" />
+      </div>
+      <div class="field"><!-- spacer --></div>
+
+      <div class="field span-3">
+        <label for="address">Street Address</label>
+        <input type="text" id="address" placeholder="e.g. 123 Main Street" />
+      </div>
+
+      <div class="field span-2">
+        <label for="cityStateZip">City, State, Zip</label>
+        <input type="text" id="cityStateZip" placeholder="e.g. Buffalo, NY 14210" />
+      </div>
+
+    </div>
+    <p class="tip">Tip: You can name your homeschool whatever you'd like — many families use their last name, e.g. "Smith Homeschool."</p>
+  </section>
+
+  <!-- Step 2 ── Courses -->
+  <section class="card">
+    <div class="step-label">Step 2</div>
+    <h2>Enter Courses from Your Gradebook</h2>
+    <p class="note">
+      Open your Miacademy Gradebook and copy each course name, grade, and dates below.
+      Choose a Miacademy course from the dropdown and the duration fills in automatically —
+      or type any course name you'd like. Both fields can be edited freely.
+    </p>
+
+    <div class="table-scroll">
+      <table class="course-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Course Name</th>
+            <th>Grade %</th>
+            <th>Letter</th>
+            <th>Start Date</th>
+            <th>End Date</th>
+            <th>Duration</th>
+            <th>Credits</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="course-tbody"></tbody>
+      </table>
+    </div>
+
+    <button class="btn-secondary" onclick="addRow()">+ Add Course</button>
+  </section>
+
+  <!-- Live Summary -->
+  <section class="summary-card hidden" id="summary-card">
+    <div class="summary-item">
+      <span>Total Credits</span>
+      <strong id="summary-credits">0.0</strong>
+    </div>
+    <div class="summary-div"></div>
+    <div class="summary-item">
+      <span>Cumulative GPA (4.0 scale)</span>
+      <strong id="summary-gpa">0.00</strong>
+    </div>
+  </section>
+
+  <!-- Download -->
+  <div class="download-section">
+    <p class="download-note">
+      1 credit = full-year course &nbsp;&middot;&nbsp; 0.5 credits = half-year course<br>
+      GPA is calculated on an unweighted 4.0 scale · <a href="https://miacademy.co/homeschool-curriculum/by-state/" target="_blank" rel="noopener">Check your state's requirements</a>
+    </p>
+    <button class="btn-primary" onclick="generatePDF()">Download Transcript PDF</button>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  <p>Curriculum provided by Miacademy | Miaplaza, Inc.</p>
+</footer>
+
+<!-- Course datalist (Miacademy + MiaPrep combined) -->
+<datalist id="course-list">
+  <!-- Learn to Read -->
+  <option value="Learn to Read: Level A"></option>
+  <option value="Learn to Read: Level B"></option>
+  <option value="Learn to Read: Level C"></option>
+  <!-- Reading Comprehension -->
+  <option value="Reading Comprehension: Level C"></option>
+  <option value="Reading Comprehension: Level D"></option>
+  <option value="Reading Comprehension: Level E"></option>
+  <option value="Reading Comprehension: Level F"></option>
+  <option value="Reading Comprehension: Level G"></option>
+  <option value="Reading Comprehension: Level H"></option>
+  <option value="Reading Comprehension: Level I"></option>
+  <!-- Language Arts -->
+  <option value="Language Arts: Level B"></option>
+  <option value="Language Arts: Level C"></option>
+  <option value="Language Arts: Level D"></option>
+  <option value="Language Arts: Level E"></option>
+  <option value="Language Arts: Level F"></option>
+  <option value="Language Arts: Level G"></option>
+  <option value="Language Arts: Level H"></option>
+  <option value="Language Arts: Level I"></option>
+  <!-- English / Writing (MiaPrep) -->
+  <option value="English 1"></option>
+  <option value="English 2"></option>
+  <option value="English 3"></option>
+  <option value="English 4"></option>
+  <option value="Literary Analysis"></option>
+  <option value="High School Writing"></option>
+  <option value="Journalism in the Digital Age"></option>
+  <option value="Creative Writing"></option>
+  <option value="Myths and Legends"></option>
+  <option value="Folklore and Fairytales"></option>
+  <!-- Math -->
+  <option value="Math: Level A"></option>
+  <option value="Math: Level B"></option>
+  <option value="Math: Level C"></option>
+  <option value="Math: Level D"></option>
+  <option value="Math: Level E"></option>
+  <option value="Math: Level F"></option>
+  <option value="Math: Level G"></option>
+  <option value="Math: Level H"></option>
+  <option value="Math: Level I"></option>
+  <option value="Prealgebra"></option>
+  <option value="Prealgebra 1"></option>
+  <option value="Prealgebra 2"></option>
+  <option value="Algebra 1"></option>
+  <option value="Geometry"></option>
+  <option value="Algebra 2"></option>
+  <option value="Precalculus"></option>
+  <!-- Social Studies -->
+  <option value="Beginning Social Studies 1"></option>
+  <option value="Beginning Social Studies 2"></option>
+  <option value="Exploring Social Studies"></option>
+  <option value="U.S. Geography"></option>
+  <option value="U.S. Government"></option>
+  <option value="U.S. History 1"></option>
+  <option value="U.S. History 2"></option>
+  <option value="U.S. History 1: Exploration-1877"></option>
+  <option value="U.S. History 2: Reconstruction-1960s"></option>
+  <option value="U.S. History"></option>
+  <option value="Ancient World History"></option>
+  <option value="World History: The First Global Age"></option>
+  <option value="World Geography"></option>
+  <option value="World History"></option>
+  <option value="Civics"></option>
+  <option value="Economics"></option>
+  <option value="World Religions"></option>
+  <!-- Science -->
+  <option value="Discovering Science"></option>
+  <option value="Science All Around Me"></option>
+  <option value="Exploring Science"></option>
+  <option value="Investigating Earth and Space Science"></option>
+  <option value="General Science"></option>
+  <option value="Structures of Science"></option>
+  <option value="Earth Science"></option>
+  <option value="Astronomy"></option>
+  <option value="Life Science"></option>
+  <option value="Physical Science"></option>
+  <option value="Integrated Physics & Chemistry"></option>
+  <option value="Environmental Science I"></option>
+  <option value="Environmental Science II"></option>
+  <option value="Biology"></option>
+  <option value="Chemistry"></option>
+  <option value="Physics"></option>
+  <!-- World Languages -->
+  <option value="My First Spanish Lessons"></option>
+  <option value="Beginning Spanish"></option>
+  <option value="Intro to Spanish for Middle School"></option>
+  <option value="Spanish 1"></option>
+  <option value="Spanish 2"></option>
+  <option value="Spanish 3"></option>
+  <option value="Beginning American Sign Language"></option>
+  <option value="American Sign Language 1"></option>
+  <option value="Beginning French Vocabulary Practice"></option>
+  <option value="Beginning German Vocabulary Practice"></option>
+  <option value="Classical Languages Vocabulary Practice"></option>
+  <!-- Life Skills / PE / Tech -->
+  <option value="Life Skills 1"></option>
+  <option value="Fit & Active"></option>
+  <option value="Middle School Physical Fitness"></option>
+  <option value="Physical Fitness"></option>
+  <option value="Physical Education 1"></option>
+  <option value="Intro to Typing"></option>
+  <option value="Typing"></option>
+  <option value="Computer Skills"></option>
+  <option value="Intro to Programming 1"></option>
+  <option value="Intro to Programming 2"></option>
+  <option value="Financial Literacy"></option>
+  <option value="Health 1"></option>
+  <option value="Career Exploration"></option>
+  <option value="College Prep"></option>
+  <option value="Adulting 101"></option>
+  <!-- Music & Arts -->
+  <option value="Music With Mia"></option>
+  <option value="Music For All"></option>
+  <option value="Art Class"></option>
+  <option value="All About Instruments"></option>
+  <option value="Song Writing"></option>
+  <option value="Art Around the World"></option>
+  <option value="Theatre Arts 1"></option>
+  <option value="Theatre Arts 2"></option>
+  <option value="Elements of Art"></option>
+  <option value="Music Reading"></option>
+  <option value="Drawing Essentials"></option>
+  <!-- Biblical Studies -->
+  <option value="Bible Stories"></option>
+  <option value="Bible Basics"></option>
+  <option value="Bible Study"></option>
+  <option value="Old & New Testament Study"></option>
+  <option value="Jewish Bible Study"></option>
+  <option value="Jewish Bible Studies"></option>
+  <option value="Jewish Holidays"></option>
+  <option value="Scripture Memory"></option>
+</datalist>
+
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+<script>
+'use strict';
+
+// ── Course catalog: name -> default duration ──────────────────────────────────
+const CATALOG = new Map([
+  // Learn to Read
+  ['Learn to Read: Level A', 'full'], ['Learn to Read: Level B', 'full'], ['Learn to Read: Level C', 'full'],
+  // Reading Comprehension (supplementary — 1 day/week)
+  ['Reading Comprehension: Level C', 'half'], ['Reading Comprehension: Level D', 'half'],
+  ['Reading Comprehension: Level E', 'half'], ['Reading Comprehension: Level F', 'half'],
+  ['Reading Comprehension: Level G', 'half'], ['Reading Comprehension: Level H', 'half'],
+  ['Reading Comprehension: Level I', 'half'],
+  // Language Arts
+  ['Language Arts: Level B', 'half'], ['Language Arts: Level C', 'half'],
+  ['Language Arts: Level D', 'full'], ['Language Arts: Level E', 'full'],
+  ['Language Arts: Level F', 'full'], ['Language Arts: Level G', 'full'],
+  ['Language Arts: Level H', 'full'], ['Language Arts: Level I', 'full'],
+  // English / Writing (MiaPrep)
+  ['English 1', 'full'], ['English 2', 'full'], ['English 3', 'full'], ['English 4', 'full'],
+  ['Literary Analysis', 'half'], ['High School Writing', 'half'],
+  ['Journalism in the Digital Age', 'half'], ['Creative Writing', 'half'],
+  ['Myths and Legends', 'half'], ['Folklore and Fairytales', 'half'],
+  // Math
+  ['Math: Level A', 'full'], ['Math: Level B', 'full'], ['Math: Level C', 'full'],
+  ['Math: Level D', 'full'], ['Math: Level E', 'full'], ['Math: Level F', 'full'],
+  ['Math: Level G', 'full'], ['Math: Level H', 'full'], ['Math: Level I', 'full'],
+  ['Prealgebra', 'full'], ['Prealgebra 1', 'full'], ['Prealgebra 2', 'full'],
+  ['Algebra 1', 'full'], ['Geometry', 'full'], ['Algebra 2', 'full'], ['Precalculus', 'full'],
+  // Social Studies
+  ['Beginning Social Studies 1', 'full'], ['Beginning Social Studies 2', 'full'],
+  ['Exploring Social Studies', 'full'], ['U.S. Geography', 'full'], ['U.S. Government', 'full'],
+  ['U.S. History 1', 'full'], ['U.S. History 2', 'full'],
+  ['U.S. History 1: Exploration-1877', 'full'], ['U.S. History 2: Reconstruction-1960s', 'full'],
+  ['U.S. History', 'full'], ['Ancient World History', 'full'],
+  ['World History: The First Global Age', 'full'],
+  ['World Geography', 'full'], ['World History', 'full'], ['Civics', 'full'],
+  ['Economics', 'half'], ['World Religions', 'half'],
+  // Science
+  ['Discovering Science', 'full'], ['Science All Around Me', 'full'],
+  ['Exploring Science', 'full'], ['Investigating Earth and Space Science', 'full'],
+  ['General Science', 'full'], ['Structures of Science', 'full'],
+  ['Earth Science', 'full'], ['Astronomy', 'full'], ['Life Science', 'full'],
+  ['Physical Science', 'full'], ['Integrated Physics & Chemistry', 'full'],
+  ['Environmental Science I', 'half'], ['Environmental Science II', 'half'],
+  ['Biology', 'full'], ['Chemistry', 'full'], ['Physics', 'full'],
+  // World Languages
+  ['My First Spanish Lessons', 'full'], ['Beginning Spanish', 'half'],
+  ['Intro to Spanish for Middle School', 'half'],
+  ['Spanish 1', 'full'], ['Spanish 2', 'full'], ['Spanish 3', 'full'],
+  ['Beginning American Sign Language', 'full'], ['American Sign Language 1', 'full'],
+  ['Beginning French Vocabulary Practice', 'half'],
+  ['Beginning German Vocabulary Practice', 'half'],
+  ['Classical Languages Vocabulary Practice', 'half'],
+  // Life Skills / PE / Tech
+  ['Life Skills 1', 'full'], ['Fit & Active', 'full'],
+  ['Middle School Physical Fitness', 'full'], ['Physical Fitness', 'full'],
+  ['Physical Education 1', 'half'], ['Intro to Typing', 'full'], ['Typing', 'full'],
+  ['Computer Skills', 'half'], ['Intro to Programming 1', 'half'], ['Intro to Programming 2', 'half'],
+  ['Financial Literacy', 'half'], ['Health 1', 'half'],
+  ['Career Exploration', 'half'], ['College Prep', 'half'], ['Adulting 101', 'half'],
+  // Music & Arts
+  ['Music With Mia', 'full'], ['Music For All', 'full'], ['Art Class', 'half'],
+  ['All About Instruments', 'half'], ['Song Writing', 'half'], ['Art Around the World', 'half'],
+  ['Theatre Arts 1', 'half'], ['Theatre Arts 2', 'half'], ['Elements of Art', 'half'],
+  ['Music Reading', 'half'], ['Drawing Essentials', 'half'],
+  // Biblical Studies
+  ['Bible Stories', 'half'], ['Bible Basics', 'half'], ['Bible Study', 'half'],
+  ['Old & New Testament Study', 'half'], ['Jewish Bible Study', 'half'],
+  ['Jewish Bible Studies', 'half'], ['Jewish Holidays', 'half'], ['Scripture Memory', 'half'],
+]);
+
+// ── Grading scale ─────────────────────────────────────────────────────────────
+const SCALE = [
+  { min: 98, letter: 'A+', gpa: 4.0 },
+  { min: 93, letter: 'A',  gpa: 4.0 },
+  { min: 90, letter: 'A-', gpa: 3.7 },
+  { min: 87, letter: 'B+', gpa: 3.3 },
+  { min: 83, letter: 'B',  gpa: 3.0 },
+  { min: 80, letter: 'B-', gpa: 2.7 },
+  { min: 77, letter: 'C+', gpa: 2.3 },
+  { min: 73, letter: 'C',  gpa: 2.0 },
+  { min: 70, letter: 'C-', gpa: 1.7 },
+  { min: 67, letter: 'D+', gpa: 1.3 },
+  { min: 60, letter: 'D',  gpa: 1.0 },
+  { min: 0,  letter: 'F',  gpa: 0.0 },
+];
+
+function getLetterGrade(pct) {
+  return (SCALE.find(s => pct >= s.min) || SCALE[SCALE.length - 1]).letter;
+}
+function getGPAPoints(pct) {
+  return (SCALE.find(s => pct >= s.min) || SCALE[SCALE.length - 1]).gpa;
+}
+function creditVal(duration) { return duration === 'half' ? 0.5 : 1.0; }
+
+// ── Course combobox focus helpers ─────────────────────────────────────────────
+// Clear on focus so the full list appears; restore on blur if nothing was chosen.
+function onCourseFocus(input) {
+  input._saved = input.value;
+  input.value = '';
+}
+function onCourseBlur(input) {
+  if (input.value === '') input.value = input._saved || '';
+  delete input._saved;
+  onCourseName(input);
+}
+
+// ── Row management ────────────────────────────────────────────────────────────
+let rowCounter = 0;
+
+function addRow() {
+  const id = ++rowCounter;
+  const tbody = document.getElementById('course-tbody');
+  const n = tbody.children.length + 1;
+  const tr = document.createElement('tr');
+  tr.id = 'row-' + id;
+  tr.innerHTML =
+    '<td class="row-num">' + n + '</td>' +
+    '<td><input type="text" list="course-list" class="input-course" placeholder="Type or select a course…" oninput="onCourseName(this)" onfocus="onCourseFocus(this)" onblur="onCourseBlur(this)"></td>' +
+    '<td><input type="number" min="0" max="100" class="input-grade" placeholder="0-100" oninput="onGrade(this)"></td>' +
+    '<td class="td-center"><span class="letter-badge">-</span></td>' +
+    '<td><input type="date" class="input-date"></td>' +
+    '<td><input type="date" class="input-date"></td>' +
+    '<td><select class="input-duration" onchange="onDuration(this)">' +
+      '<option value="full">Full Year (1.0)</option>' +
+      '<option value="half">Half Year (0.5)</option>' +
+    '</select></td>' +
+    '<td class="td-credits">1.0</td>' +
+    '<td><button class="btn-remove" onclick="removeRow(this)" title="Remove">×</button></td>';
+  tbody.appendChild(tr);
+  updateSummary();
+}
+
+function removeRow(btn) {
+  btn.closest('tr').remove();
+  renumber();
+  updateSummary();
+}
+
+function renumber() {
+  document.querySelectorAll('#course-tbody tr').forEach((tr, i) => {
+    tr.querySelector('.row-num').textContent = i + 1;
+  });
+}
+
+function onCourseName(input) {
+  const duration = CATALOG.get(input.value);
+  if (duration) {
+    const row = input.closest('tr');
+    row.querySelector('.input-duration').value = duration;
+    row.querySelector('.td-credits').textContent = creditVal(duration).toFixed(1);
+  }
+  updateSummary();
+}
+
+function onGrade(input) {
+  const row = input.closest('tr');
+  const badge = row.querySelector('.letter-badge');
+  const v = input.value;
+  if (v !== '' && Number(v) >= 0 && Number(v) <= 100) {
+    badge.textContent = getLetterGrade(Number(v));
+    badge.classList.add('active');
+  } else {
+    badge.textContent = '-';
+    badge.classList.remove('active');
+  }
+  updateSummary();
+}
+
+function onDuration(select) {
+  select.closest('tr').querySelector('.td-credits').textContent =
+    creditVal(select.value).toFixed(1);
+  updateSummary();
+}
+
+function updateSummary() {
+  let totalCredits = 0, weighted = 0, creditCount = 0;
+  document.querySelectorAll('#course-tbody tr').forEach(tr => {
+    const name  = tr.querySelector('.input-course').value.trim();
+    const grade = tr.querySelector('.input-grade').value;
+    if (!name || grade === '') return;
+    const g = Number(grade);
+    if (g < 0 || g > 100) return;
+    const c = creditVal(tr.querySelector('.input-duration').value);
+    totalCredits += c;
+    weighted     += getGPAPoints(g) * c;
+    creditCount  += c;
+  });
+  const card = document.getElementById('summary-card');
+  if (creditCount > 0) {
+    card.classList.remove('hidden');
+    document.getElementById('summary-credits').textContent = totalCredits.toFixed(1);
+    document.getElementById('summary-gpa').textContent = (weighted / creditCount).toFixed(2);
+  } else {
+    card.classList.add('hidden');
+  }
+}
+
+// ── PDF generation ────────────────────────────────────────────────────────────
+function fmtDate(str) {
+  if (!str) return '';
+  const [y, m, d] = str.split('-');
+  return parseInt(m) + '/' + parseInt(d) + '/' + y;
+}
+
+function generatePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'letter' });
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+  const mg = 14;
+  const tw = pw - mg * 2;
+
+  const TEAL    = [44, 107, 107];
+  const TEAL_BG = [232, 244, 244];
+  const WHITE   = [255, 255, 255];
+  const BLACK   = [0, 0, 0];
+  const GRAY    = [130, 130, 130];
+
+  const val = id => document.getElementById(id).value.trim();
+
+  // ── Header bar ──
+  doc.setFillColor(...TEAL);
+  doc.rect(0, 0, pw, 26, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(17);
+  doc.setTextColor(...WHITE);
+  doc.text(val('homeschoolName') || 'My Homeschool', pw / 2, 16, { align: 'center' });
+
+  // ── Title ──
+  doc.setTextColor(...TEAL);
+  doc.setFontSize(20);
+  doc.text('Homeschool Transcript', pw / 2, 36, { align: 'center' });
+
+  // ── Subtitle ──
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...GRAY);
+  doc.text('Curriculum provided by Miacademy  |  Miaplaza, Inc.', pw / 2, 43.5, { align: 'center' });
+
+  // ── Rule ──
+  doc.setDrawColor(210, 210, 210);
+  doc.setLineWidth(0.3);
+  doc.line(mg, 48, pw - mg, 48);
+
+  // ── Student block ──
+  let y = 56;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10.5);
+  doc.setTextColor(...BLACK);
+  doc.text('Student: ' + (val('studentName') || ''), mg, y);
+  if (val('schoolYear')) doc.text('School Year: ' + val('schoolYear'), pw - mg, y, { align: 'right' });
+
+  y += 6.5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
+  const dob = document.getElementById('dob').value;
+  const grade = document.getElementById('gradeLevel').value;
+  if (dob)   doc.text('Date of Birth: ' + fmtDate(dob), mg, y);
+  if (grade) doc.text('Grade: ' + grade, pw - mg, y, { align: 'right' });
+  if (dob || grade) y += 6;
+
+  if (val('address')) {
+    doc.text(val('address'), mg, y);
+    y += 5.5;
+  }
+  if (val('cityStateZip')) {
+    doc.text(val('cityStateZip'), mg, y);
+    y += 5.5;
+  }
+
+  // ── Rule ──
+  doc.setDrawColor(210, 210, 210);
+  doc.line(mg, y + 2, pw - mg, y + 2);
+  const tableY = y + 7;
+
+  // ── Build course rows ──
+  const trows = document.querySelectorAll('#course-tbody tr');
+  const data = [];
+  let totalCredits = 0, weighted = 0, creditCount = 0;
+
+  trows.forEach(tr => {
+    const name  = tr.querySelector('.input-course').value.trim();
+    const gStr  = tr.querySelector('.input-grade').value;
+    const start = tr.querySelectorAll('.input-date')[0].value;
+    const end   = tr.querySelectorAll('.input-date')[1].value;
+    const dur   = tr.querySelector('.input-duration').value;
+    if (!name) return;
+    const g = gStr !== '' ? Number(gStr) : null;
+    const gradeCell = g !== null ? g + ' (' + getLetterGrade(g) + ')' : '';
+    const c = creditVal(dur);
+    const dates = start && end ? fmtDate(start) + ' - ' + fmtDate(end)
+                : fmtDate(start) || fmtDate(end);
+    data.push([name, gradeCell, c.toFixed(1), dates]);
+    if (g !== null) {
+      totalCredits += c;
+      weighted     += getGPAPoints(g) * c;
+      creditCount  += c;
+    }
+  });
+
+  while (data.length < 10) data.push(['', '', '', '']);
+
+  // ── Course table ──
+  doc.autoTable({
+    startY: tableY,
+    head: [['Course', 'Grade', 'Credits', 'Dates']],
+    body: data,
+    headStyles: {
+      fillColor: TEAL, textColor: WHITE,
+      fontStyle: 'bold', fontSize: 10, halign: 'center',
+    },
+    styles: {
+      fontSize: 9.5,
+      cellPadding: { top: 3, bottom: 3, left: 4, right: 4 },
+      textColor: BLACK, fillColor: WHITE,
+      lineColor: [220, 220, 220], lineWidth: 0.1,
+    },
+    alternateRowStyles: { fillColor: TEAL_BG },
+    columnStyles: {
+      0: { cellWidth: 'auto', halign: 'left' },
+      1: { cellWidth: 30, halign: 'center' },
+      2: { cellWidth: 20, halign: 'center' },
+      3: { cellWidth: 46, halign: 'center' },
+    },
+    margin: { left: mg, right: mg },
+    theme: 'plain',
+  });
+
+  // ── Footer rows ──
+  const bot  = doc.lastAutoTable.finalY;
+  const rowH = 8.5;
+  const mid  = pw / 2;
+  const gpa  = creditCount > 0 ? (weighted / creditCount).toFixed(2) : '-';
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...WHITE);
+
+  doc.setFillColor(...TEAL);
+  doc.rect(mg, bot, tw, rowH, 'F');
+  doc.text('Total Credits', mid - 5, bot + 5.8, { align: 'right' });
+  doc.text(totalCredits.toFixed(1), mid + 5, bot + 5.8, { align: 'left' });
+
+  doc.setFillColor(...TEAL);
+  doc.rect(mg, bot + rowH, tw, rowH, 'F');
+  doc.text('Cumulative GPA (4.0 scale)', mid - 5, bot + rowH + 5.8, { align: 'right' });
+  doc.text(gpa, mid + 5, bot + rowH + 5.8, { align: 'left' });
+
+  // ── Grading note ──
+  let ny = bot + rowH * 2 + 7;
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(7);
+  doc.setTextColor(...GRAY);
+  doc.text(
+    'Grading Scale:  98-100 = A+  \xb7  93-97 = A  \xb7  90-92 = A-  \xb7  87-89 = B+  \xb7  83-86 = B  \xb7  80-82 = B-  \xb7  77-79 = C+  \xb7  73-76 = C  \xb7  70-72 = C-  \xb7  67-69 = D+  \xb7  60-66 = D  \xb7  0-59 = F',
+    mg, ny
+  );
+  ny += 4.5;
+  doc.text('GPA is based on an unweighted 4.0 scale.', mg, ny);
+
+  // ── Signature ──
+  const sigY = ny + 12;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
+  doc.setTextColor(...BLACK);
+  doc.text('Parent / Guardian Signature: _______________________________', mg, sigY);
+  doc.text('Date: _______________', pw - mg, sigY, { align: 'right' });
+  doc.text('Printed Name: _______________________________', mg, sigY + 8);
+
+  // ── Legal disclaimer (anchored to bottom of page) ──
+  doc.setFont('helvetica', 'italic');
+  doc.setFontSize(6.5);
+  doc.setTextColor(...GRAY);
+  doc.text(
+    'Miaplaza, Inc. is not a school. Miaplaza, Inc. provides homeschool curricula and provides this transcript template to support homeschool families. The student\'s parent or guardian submits the information on this transcript. Miaplaza, Inc. (including any of its brands) does not certify any grade or course completion status on this transcript.',
+    mg, ph - 12, { maxWidth: tw }
+  );
+
+  // ── Save ──
+  const name = (val('studentName') || 'transcript').replace(/[^a-z0-9]/gi, '_');
+  doc.save(name + '_Transcript.pdf');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+addRow(); addRow(); addRow();
+</script>
+</body>
+</html>
