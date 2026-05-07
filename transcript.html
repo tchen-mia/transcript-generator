@@ -51,7 +51,7 @@
 
     /* ── Layout ── */
     .container {
-      max-width: 1400px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 24px 20px 56px;
       display: flex;
@@ -143,24 +143,35 @@
       border-radius: 6px;
       border: 1px solid var(--border);
     }
-    .course-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .course-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
     .course-table thead tr  { background: var(--teal); color: #fff; }
-    .course-table th        { padding: 9px 7px; text-align: left; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .course-table th        { padding: 8px 6px; text-align: left; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; }
     .course-table tbody tr  { border-bottom: 1px solid #eee; }
     .course-table tbody tr:nth-child(even) { background: var(--teal-light); }
     .course-table tbody tr:hover { background: #e5f2f2; }
-    .course-table td        { padding: 5px 5px; vertical-align: middle; }
+    .course-table td        { padding: 4px 4px; vertical-align: middle; overflow: hidden; }
 
-    .row-num   { color: var(--muted); font-size: 12px; text-align: center; width: 26px; }
-    .td-center { text-align: center; }
-    .td-credits { text-align: center; font-weight: 600; color: var(--teal-dark); width: 52px; }
+    /* Fixed column widths — course name gets the rest */
+    .course-table th:nth-child(1), .course-table td:nth-child(1) { width: 30px; text-align: center; }
+    .course-table th:nth-child(3), .course-table td:nth-child(3) { width: 72px; text-align: center; }
+    .course-table th:nth-child(4), .course-table td:nth-child(4) { width: 52px; text-align: center; }
+    .course-table th:nth-child(5), .course-table td:nth-child(5) { width: 118px; }
+    .course-table th:nth-child(6), .course-table td:nth-child(6) { width: 118px; }
+    .course-table th:nth-child(7), .course-table td:nth-child(7) { width: 148px; }
+    .course-table th:nth-child(8), .course-table td:nth-child(8) { width: 52px; text-align: center; }
+    .course-table th:nth-child(9), .course-table td:nth-child(9) { width: 28px; }
 
-    .input-course   { width: 100%; min-width: 140px; }
-    .input-grade    { width: 72px; text-align: center; }
+    .row-num    { color: var(--muted); font-size: 12px; }
+    .td-center  { text-align: center; }
+    .td-credits { text-align: center; font-weight: 600; color: var(--teal-dark); }
+
+    .input-course   { width: 100%; }
+    .input-grade    { width: 100%; text-align: center; }
     .input-grade::-webkit-inner-spin-button,
     .input-grade::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
     .input-grade { -moz-appearance: textfield; }
-    .input-duration { min-width: 130px; background: var(--white); }
+    .input-date     { width: 100%; }
+    .input-duration { width: 100%; background: var(--white); }
 
     .input-course,
     .input-grade,
