@@ -918,7 +918,11 @@ function generatePDF() {
   doc.setFontSize(7);
   doc.setTextColor(...GRAY);
   doc.text(
-    'Grading Scale:  98-100 = A+  \xb7  93-97 = A  \xb7  90-92 = A-  \xb7  87-89 = B+  \xb7  83-86 = B  \xb7  80-82 = B-  \xb7  77-79 = C+  \xb7  73-76 = C  \xb7  70-72 = C-  \xb7  67-69 = D+  \xb7  60-66 = D  \xb7  0-59 = F',
+    'Grading Scale:', mg, ny
+  );
+  ny += 4;
+  doc.text(
+    '98-100 = A+  \xb7  93-97 = A  \xb7  90-92 = A-  \xb7  87-89 = B+  \xb7  83-86 = B  \xb7  80-82 = B-  \xb7  77-79 = C+  \xb7  73-76 = C  \xb7  70-72 = C-  \xb7  67-69 = D+  \xb7  60-66 = D  \xb7  0-59 = F',
     mg, ny, { maxWidth: tw }
   );
   ny += 8;
