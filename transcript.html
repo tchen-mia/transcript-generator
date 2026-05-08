@@ -910,8 +910,8 @@ function generatePDF() {
     columnStyles: {
       0: { cellWidth: 'auto', halign: 'left' },
       1: { cellWidth: 30, halign: 'center' },
-      2: { cellWidth: 20, halign: 'center' },
-      3: { cellWidth: 46, halign: 'center' },
+      2: { cellWidth: 28, halign: 'center' },
+      3: { cellWidth: 44, halign: 'center' },
     },
     margin: { left: mg, right: mg },
     theme: 'plain',
@@ -954,13 +954,23 @@ function generatePDF() {
   doc.text('GPA is based on an unweighted 4.0 scale.', mg, ny);
 
   // ── Signature ──
-  const sigY = ny + 12;
+  const sigY = ny + 14;
+  const sigLineEnd = mg + 112;
+  const dateStart  = sigLineEnd + 14;
+  doc.setDrawColor(120, 120, 120);
+  doc.setLineWidth(0.4);
+  // Row 1: Signature line + Date line
+  doc.line(mg, sigY, sigLineEnd, sigY);
+  doc.line(dateStart, sigY, pw - mg, sigY);
+  // Row 2: Printed Name line
+  doc.line(mg, sigY + 14, sigLineEnd, sigY + 14);
+  // Labels (below each line, left-aligned to the line start)
   doc.setFont('Lexend', 'normal');
-  doc.setFontSize(9.5);
-  doc.setTextColor(...BLACK);
-  doc.text('Parent / Guardian Signature: _______________________________', mg, sigY);
-  doc.text('Date: _______________', pw - mg, sigY, { align: 'right' });
-  doc.text('Printed Name: _______________________________', mg, sigY + 8);
+  doc.setFontSize(8);
+  doc.setTextColor(100, 100, 100);
+  doc.text('Parent / Guardian Signature', mg, sigY + 5);
+  doc.text('Date', dateStart, sigY + 5);
+  doc.text('Printed Name', mg, sigY + 19);
 
   // ── Legal disclaimer (anchored to bottom of page) ──
   doc.setFont('Lexend', 'normal');
