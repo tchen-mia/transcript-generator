@@ -46,7 +46,8 @@
       opacity: 0.75;
       margin-bottom: 6px;
     }
-    .site-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+    .site-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 6px; }
+    .header-sub-brand { font-size: 13px; opacity: 0.72; margin-bottom: 10px; }
     .header-sub     { font-size: 14px; opacity: 0.88; max-width: 540px; margin: 0 auto; }
 
     /* ── Layout ── */
@@ -295,8 +296,9 @@
 <body>
 
 <header class="site-header">
-  <p class="header-brand">Miacademy</p>
+  <p class="header-brand">Miaplaza</p>
   <h1>Homeschool Transcript Generator</h1>
+  <p class="header-sub-brand">Home of Miacademy, Always Icecream, Clever Dragons, and MiaPrep</p>
   <p class="header-sub">Fill in your student's info and courses, then download your transcript as a PDF — free, no account needed.</p>
 </header>
 
@@ -351,7 +353,16 @@
         <label for="schoolYear">School Year</label>
         <input type="text" id="schoolYear" placeholder="e.g. 2025-2026" />
       </div>
-      <div class="field"><!-- spacer --></div>
+      <div class="field">
+        <label for="curriculumSite">Curriculum Site</label>
+        <select id="curriculumSite">
+          <option value="">— Select —</option>
+          <option>Miacademy</option>
+          <option>Always Icecream</option>
+          <option>Clever Dragons</option>
+          <option>MiaPrep</option>
+        </select>
+      </div>
 
       <div class="field span-2">
         <label for="address">Street Address</label>
@@ -369,11 +380,10 @@
   <!-- Step 2 ── Courses -->
   <section class="card">
     <div class="step-label">Step 2</div>
-    <h2>Enter Courses from Your Gradebook</h2>
+    <h2>Enter Courses from your Gradebook or Reports tab</h2>
     <p class="note">
-      Open your Miacademy Gradebook and copy each course name, grade, and dates below.
-      Choose a Miacademy course from the dropdown and the duration fills in automatically —
-      or type any course name you'd like. Both fields can be edited freely.
+      Open your Gradebook tab and copy each course name, grade, and dates below. Need to prepare a transcript for a prior school year or include a course not currently assigned? Just go to your Reports tab, and click Change Dates. Enter the start and end date for the school year or course you need.<br><br>
+      Choose a course from the dropdown and the duration fills in automatically — or type any course name you'd like. Both fields can be edited freely.
     </p>
 
     <div class="table-scroll">
@@ -803,7 +813,8 @@ function generatePDF() {
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(8.5);
   doc.setTextColor(...GRAY);
-  doc.text('Curriculum provided by Miacademy  |  Miaplaza, Inc.', pw / 2, 43.5, { align: 'center' });
+  const currSite = val('curriculumSite') || 'Miacademy';
+  doc.text('Curriculum provided by ' + currSite + '  |  Miaplaza, Inc.', pw / 2, 43.5, { align: 'center' });
 
   // ── Rule ──
   doc.setDrawColor(210, 210, 210);
