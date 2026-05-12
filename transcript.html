@@ -9,6 +9,8 @@
   <meta property="og:description" content="Free tool for Miacademy families. Generate a professional homeschool transcript PDF in minutes — no account required." />
   <meta property="og:type" content="website" />
 
+  <script defer src="https://cloud.umami.is/script.js" data-website-id="b2904601-ceab-4fbd-84a0-8db0d586a9d3"></script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -429,7 +431,7 @@
       1 credit = full-year course &nbsp;&middot;&nbsp; 0.5 credits = half-year course<br>
       GPA is calculated on an unweighted 4.0 scale · <a href="https://miacademy.co/homeschool-curriculum/by-state/" target="_blank" rel="noopener">Check your state's requirements</a>
     </p>
-    <button class="btn-primary" onclick="generatePDF()">Download Transcript PDF</button>
+    <button class="btn-primary" data-umami-event="download-transcript" onclick="generatePDF()">Download Transcript PDF</button>
   </div>
 
 </main>
