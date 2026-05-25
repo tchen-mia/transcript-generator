@@ -147,7 +147,7 @@
       border-radius: 6px;
       border: 1px solid var(--border);
     }
-    .course-table { width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+    .course-table { width: 100%; min-width: 840px; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
     .course-table thead tr  { background: var(--teal); color: #fff; }
     .course-table th        { padding: 8px 6px; text-align: left; font-size: 11px; font-weight: 600; white-space: nowrap; overflow: hidden; }
     .course-table tbody tr  { border-bottom: 1px solid #eee; }
@@ -155,8 +155,9 @@
     .course-table tbody tr:hover { background: #e5f2f2; }
     .course-table td        { padding: 4px 4px; vertical-align: middle; overflow: hidden; }
 
-    /* Fixed column widths — course name gets the rest */
+    /* Fixed column widths — course name gets the rest (min-width on table forces h-scroll on mobile) */
     .course-table th:nth-child(1), .course-table td:nth-child(1) { width: 30px; text-align: center; }
+    .course-table th:nth-child(2), .course-table td:nth-child(2) { min-width: 180px; }
     .course-table th:nth-child(3), .course-table td:nth-child(3) { width: 72px; text-align: center; }
     .course-table th:nth-child(4), .course-table td:nth-child(4) { width: 52px; text-align: center; }
     .course-table th:nth-child(5), .course-table td:nth-child(5) { width: 136px; }
