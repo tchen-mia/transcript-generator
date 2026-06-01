@@ -677,7 +677,10 @@ function getLetterGrade(pct) {
 function getGPAPoints(pct) {
   return (SCALE.find(s => pct >= s.min) || SCALE[SCALE.length - 1]).gpa;
 }
-function creditVal(duration) { return duration === 'half' ? 0.5 : 1.0; }
+function creditVal(duration) {
+  const CREDITS = { full: 1.0, half: 0.5, 'alt-full': 10, 'alt-half': 5 };
+  return CREDITS[duration] != null ? CREDITS[duration] : 1.0;
+}
 
 // ── Course combobox focus helpers ─────────────────────────────────────────────
 // Clear on focus so the full list appears; restore on blur if nothing was chosen.
@@ -710,6 +713,8 @@ function addRow() {
     '<td><select class="input-duration" onchange="onDuration(this)">' +
       '<option value="full">Full Year (1.0)</option>' +
       '<option value="half">Half Year (0.5)</option>' +
+      '<option value="alt-full">Alt - Full Year (10)</option>' +
+      '<option value="alt-half">Alt - Half Year (5)</option>' +
     '</select></td>' +
     '<td class="td-credits">1.0</td>' +
     '<td><button class="btn-remove" onclick="removeRow(this)" title="Remove">×</button></td>';
