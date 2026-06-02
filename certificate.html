@@ -366,12 +366,14 @@ body {
   position: absolute;
   bottom: 22px;
   left: 47%;
-  transform: translateX(-50%);
+  margin-left: -195px;      /* center via margin instead of transform (html2canvas-safe) */
   width: 390px;
   font-size: 7.5px;
   color: #888;
   text-align: center;
   line-height: 1.5;
+  letter-spacing: 0.08px;   /* triggers html2canvas per-glyph rendering (preserves spaces) with minimal added spacing */
+  text-wrap: balance;       /* even out line lengths so no single word is orphaned on the last line */
   z-index: 4;
 }
 
