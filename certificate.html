@@ -88,6 +88,29 @@ body {
   margin: 0 auto;
 }
 
+/* Cross-tool switcher tabs */
+.tool-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.tool-tab {
+  font-family: 'Lexend', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--teal-dark);
+  background: var(--white);
+  border: 1.5px solid var(--teal);
+  border-radius: 20px;
+  padding: 8px 18px;
+  transition: background 0.15s, color 0.15s;
+}
+.tool-tab:hover { background: var(--teal-light); }
+.tool-tab[aria-current="page"] { background: var(--teal); color: var(--white); cursor: default; }
+
 /* ===================================================
    MAIN LAYOUT
 =================================================== */
@@ -415,6 +438,10 @@ body {
   <h1>Certificate of Completion Generator</h1>
   <p class="header-sub-brand">Miacademy &nbsp;&middot;&nbsp; Always Icecream &nbsp;&middot;&nbsp; Clever Dragons &nbsp;&middot;&nbsp; MiaPrep</p>
   <p class="header-sub">Fill in your student's info and download a printable certificate<br>&mdash; free, no account needed.</p>
+  <nav class="tool-tabs" aria-label="Miacademy free tools">
+    <a class="tool-tab" href="transcript.html">Transcript Generator</a>
+    <a class="tool-tab" href="certificate.html" aria-current="page">Certificate of Completion</a>
+  </nav>
 </header>
 
 <!-- ================================================
