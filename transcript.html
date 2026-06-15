@@ -198,6 +198,64 @@
     .input-date:focus,
     .input-duration:focus { outline: none; border-color: var(--teal); }
 
+    /* ── Consistent custom dropdowns (course + duration + grade level) ── */
+    .combo { position: relative; }
+    .combo > input {
+      -webkit-appearance: none; appearance: none;
+      padding-right: 22px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 7px center;
+    }
+    .combo > input[readonly] { cursor: pointer; caret-color: transparent; }
+    .combo-list {
+      position: fixed; z-index: 1000;
+      margin: 0; padding: 4px; list-style: none;
+      background: #fff; border: 1.5px solid var(--border); border-radius: 6px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.14);
+      max-height: 240px; overflow-y: auto;
+      font-size: 12px; font-family: inherit; color: var(--text);
+    }
+    .combo-list li {
+      padding: 6px 9px; border-radius: 4px; cursor: pointer;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .combo-list li:hover, .combo-list li.active { background: var(--teal-light); }
+    .combo-list li.empty { color: #999; cursor: default; }
+
+    /* ── Date fields: masked mm/dd/yyyy text + custom calendar ── */
+    .datefield { position: relative; display: flex; align-items: center; }
+    .datefield > input { width: 100%; padding-right: 26px; }
+    .date-btn {
+      position: absolute; right: 5px; top: 50%; transform: translateY(-50%);
+      width: 20px; height: 20px; padding: 0; border: none; background: transparent;
+      cursor: pointer; opacity: 0.55;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: center;
+    }
+    .date-btn:hover { opacity: 1; }
+    .cal-popup {
+      position: fixed; z-index: 1001;
+      background: #fff; border: 1.5px solid var(--border); border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.16); padding: 8px; width: 220px;
+      font-family: inherit; color: var(--text); user-select: none;
+    }
+    .cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .cal-title { font-size: 13px; font-weight: 600; }
+    .cal-nav {
+      border: none; background: var(--teal-light); color: var(--teal-dark);
+      width: 24px; height: 24px; border-radius: 5px; cursor: pointer; font-size: 15px; line-height: 1;
+    }
+    .cal-nav:hover { background: var(--teal); color: #fff; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+    .cal-dow span { text-align: center; font-size: 10px; color: var(--muted); padding: 2px 0; }
+    .cal-days button {
+      border: none; background: transparent; border-radius: 5px; cursor: pointer;
+      font-size: 12px; padding: 5px 0; color: var(--text); font-family: inherit;
+    }
+    .cal-days button:hover { background: var(--teal-light); }
+    .cal-days button.sel { background: var(--teal); color: #fff; }
+
     .letter-badge {
       display: inline-block;
       min-width: 28px;
@@ -329,27 +387,17 @@
       </div>
       <div class="field">
         <label for="dob">Date of Birth</label>
-        <input type="date" id="dob" />
+        <div class="datefield">
+          <input type="text" id="dob" placeholder="mm/dd/yyyy" inputmode="numeric" maxlength="10" autocomplete="off" />
+          <button type="button" class="date-btn" tabindex="-1" aria-label="Open calendar"></button>
+        </div>
       </div>
       <div class="field">
         <label for="gradeLevel">Grade Level</label>
-        <select id="gradeLevel">
-          <option value="">— Select —</option>
-          <option>Pre-K</option>
-          <option>Kindergarten</option>
-          <option>1st Grade</option>
-          <option>2nd Grade</option>
-          <option>3rd Grade</option>
-          <option>4th Grade</option>
-          <option>5th Grade</option>
-          <option>6th Grade</option>
-          <option>7th Grade</option>
-          <option>8th Grade</option>
-          <option>9th Grade</option>
-          <option>10th Grade</option>
-          <option>11th Grade</option>
-          <option>12th Grade</option>
-        </select>
+        <div class="combo">
+          <input type="text" id="gradeLevel" placeholder="— Select —" autocomplete="off" readonly
+                 role="combobox" aria-expanded="false" />
+        </div>
       </div>
 
       <div class="field">
@@ -368,13 +416,10 @@
       </div>
       <div class="field">
         <label for="curriculumSite">Curriculum Site</label>
-        <select id="curriculumSite">
-          <option value="">— Select —</option>
-          <option>Miacademy</option>
-          <option>Always Icecream</option>
-          <option>Clever Dragons</option>
-          <option>MiaPrep</option>
-        </select>
+        <div class="combo">
+          <input type="text" id="curriculumSite" placeholder="— Select —" autocomplete="off" readonly
+                 role="combobox" aria-expanded="false" />
+        </div>
       </div>
 
       <div class="field span-2">
@@ -690,16 +735,205 @@ function creditVal(duration) {
   return CREDITS[duration] != null ? CREDITS[duration] : 1.0;
 }
 
-// ── Course combobox focus helpers ─────────────────────────────────────────────
-// Clear on focus so the full list appears; restore on blur if nothing was chosen.
-function onCourseFocus(input) {
-  input._saved = input.value;
-  input.value = '';
+// ── Custom dropdowns (combobox) ───────────────────────────────────────────────
+// Portal-based so the menu isn't clipped by the table's overflow rules. Shared by
+// Course Name (free-text search), Duration and Grade Level (pick-only) so every
+// dropdown looks and behaves identically.
+const DURATION_OPTS = [
+  { label: 'Full Year (1.0)',      value: 'full' },
+  { label: 'Half Year (0.5)',      value: 'half' },
+  { label: 'Alt - Full Year (10)', value: 'alt-full' },
+  { label: 'Alt - Half Year (5)',  value: 'alt-half' },
+];
+
+let _menu, _activeCombo;
+function comboMenuEl() {
+  if (!_menu) {
+    _menu = document.createElement('ul');
+    _menu.className = 'combo-list';
+    _menu.setAttribute('role', 'listbox');
+    _menu.style.display = 'none';
+    document.body.appendChild(_menu);
+    window.addEventListener('scroll', () => { if (_activeCombo) posMenu(); }, true);
+    window.addEventListener('resize', () => { if (_activeCombo) posMenu(); });
+  }
+  return _menu;
 }
-function onCourseBlur(input) {
-  if (input.value === '') input.value = input._saved || '';
-  delete input._saved;
-  onCourseName(input);
+function posMenu() {
+  const r = _activeCombo.input.getBoundingClientRect();
+  const m = comboMenuEl();
+  m.style.left = r.left + 'px';
+  m.style.top  = (r.bottom + 4) + 'px';
+  m.style.minWidth = r.width + 'px';
+}
+function closeCombo() {
+  if (_menu) _menu.style.display = 'none';
+  if (_activeCombo) _activeCombo.input.setAttribute('aria-expanded', 'false');
+  _activeCombo = null;
+}
+function openCombo(combo, query) {
+  _activeCombo = combo;
+  renderCombo(combo, query);
+  combo.input.setAttribute('aria-expanded', 'true');
+  posMenu();
+}
+function renderCombo(combo, query) {
+  const m = comboMenuEl();
+  const q = (combo.freeText && query) ? query.trim().toLowerCase() : '';
+  const matches = q ? combo.options.filter(o => o.label.toLowerCase().includes(q)) : combo.options;
+  m.innerHTML = '';
+  combo.idx = -1;
+  if (!matches.length) {
+    const li = document.createElement('li');
+    li.className = 'empty';
+    li.textContent = combo.emptyMsg || 'No matches.';
+    m.appendChild(li);
+  } else {
+    matches.forEach(o => {
+      const li = document.createElement('li');
+      li.textContent = o.label;
+      li.title = o.label;
+      li.setAttribute('role', 'option');
+      li.addEventListener('mousedown', e => { e.preventDefault(); pickCombo(combo, o); });
+      m.appendChild(li);
+    });
+  }
+  m.style.display = 'block';
+}
+function comboItems() { return Array.from(comboMenuEl().querySelectorAll('li:not(.empty)')); }
+function hiCombo(i) {
+  const els = comboItems();
+  els.forEach(el => el.classList.remove('active'));
+  if (i >= 0 && i < els.length) { els[i].classList.add('active'); els[i].scrollIntoView({ block: 'nearest' }); }
+}
+function pickCombo(combo, o) {
+  // Free-text fields store the value; pick-only fields display the label and
+  // keep the real value in data-value (read by the summary/PDF code).
+  combo.input.value = combo.freeText ? o.value : o.label;
+  combo.input.dataset.value = o.value;
+  closeCombo();
+  if (combo.onSelect) combo.onSelect(o);
+}
+function initCombo(opts) {
+  const combo = {
+    input: opts.input,
+    freeText: !!opts.freeText,
+    emptyMsg: opts.emptyMsg,
+    onSelect: opts.onSelect,
+    options: opts.options.map(o => typeof o === 'string' ? { label: o, value: o } : o),
+    idx: -1,
+  };
+  const input = combo.input;
+  // Focusing always reveals the full list (so a different option can be picked
+  // without clearing first); typing filters it.
+  input.addEventListener('focus', () => openCombo(combo, null));
+  if (combo.freeText) input.addEventListener('input', () => {
+    openCombo(combo, input.value);
+    if (opts.onInput) opts.onInput();
+  });
+  // Clicking the field (incl. the arrow) toggles the list like a native <select>.
+  input.addEventListener('mousedown', () => {
+    if (document.activeElement === input) {
+      if (_activeCombo === combo && _menu && _menu.style.display !== 'none') closeCombo();
+      else openCombo(combo, null);
+    }
+  });
+  input.addEventListener('keydown', e => {
+    const els = comboItems();
+    if (e.key === 'ArrowDown')    { e.preventDefault(); if (_activeCombo !== combo) openCombo(combo, null); combo.idx = Math.min(combo.idx + 1, els.length - 1); hiCombo(combo.idx); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); combo.idx = Math.max(combo.idx - 1, 0); hiCombo(combo.idx); }
+    else if (e.key === 'Enter')   { if (combo.idx >= 0 && els[combo.idx]) { e.preventDefault(); els[combo.idx].dispatchEvent(new MouseEvent('mousedown')); } }
+    else if (e.key === 'Escape')  { closeCombo(); }
+  });
+  input.addEventListener('blur', () => closeCombo());
+  return combo;
+}
+
+// ── Date fields: masked mm/dd/yyyy + custom calendar (locale-independent) ─────
+function maskDateInput(input) {
+  const v = input.value.replace(/\D/g, '').slice(0, 8);
+  let out = v;
+  if (v.length > 4)      out = v.slice(0, 2) + '/' + v.slice(2, 4) + '/' + v.slice(4);
+  else if (v.length > 2) out = v.slice(0, 2) + '/' + v.slice(2);
+  input.value = out;
+}
+const CAL_MONTHS = ['January','February','March','April','May','June',
+                    'July','August','September','October','November','December'];
+let _cal, _calInput, _calY, _calM;
+function calEl() {
+  if (!_cal) {
+    _cal = document.createElement('div');
+    _cal.className = 'cal-popup';
+    _cal.style.display = 'none';
+    document.body.appendChild(_cal);
+    document.addEventListener('mousedown', e => {
+      if (_calInput && !_cal.contains(e.target) && e.target !== _calInput
+          && !(e.target.classList && e.target.classList.contains('date-btn'))) closeCal();
+    });
+    window.addEventListener('scroll', () => { if (_calInput) posCal(); }, true);
+    window.addEventListener('resize', () => { if (_calInput) posCal(); });
+  }
+  return _cal;
+}
+function posCal() {
+  const r = _calInput.getBoundingClientRect();
+  const el = calEl();
+  el.style.left = Math.max(4, Math.min(r.left, window.innerWidth - 232)) + 'px';
+  el.style.top  = (r.bottom + 4) + 'px';
+}
+function closeCal() { if (_cal) _cal.style.display = 'none'; _calInput = null; }
+function openCal(input) {
+  _calInput = input;
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(input.value.trim());
+  if (m) { _calM = (+m[1]) - 1; _calY = +m[3]; }
+  else { const now = new Date(); _calM = now.getMonth(); _calY = now.getFullYear(); }
+  if (_calM < 0 || _calM > 11) { const now = new Date(); _calM = now.getMonth(); _calY = now.getFullYear(); }
+  renderCal();
+  calEl().style.display = 'block';
+  posCal();
+}
+function renderCal() {
+  const el = calEl();
+  const firstDow = new Date(_calY, _calM, 1).getDay();
+  const days = new Date(_calY, _calM + 1, 0).getDate();
+  const sel = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(_calInput.value.trim());
+  const selDay = (sel && (+sel[1]) - 1 === _calM && (+sel[3]) === _calY) ? +sel[2] : -1;
+  let html = '<div class="cal-head">'
+    + '<button type="button" class="cal-nav" data-nav="-1">‹</button>'
+    + '<span class="cal-title">' + CAL_MONTHS[_calM] + ' ' + _calY + '</span>'
+    + '<button type="button" class="cal-nav" data-nav="1">›</button></div>'
+    + '<div class="cal-grid cal-dow">' + ['S','M','T','W','T','F','S'].map(d => '<span>' + d + '</span>').join('') + '</div>'
+    + '<div class="cal-grid cal-days">';
+  for (let i = 0; i < firstDow; i++) html += '<span></span>';
+  for (let d = 1; d <= days; d++) html += '<button type="button" class="cal-day' + (d === selDay ? ' sel' : '') + '" data-day="' + d + '">' + d + '</button>';
+  html += '</div>';
+  el.innerHTML = html;
+  el.querySelectorAll('.cal-nav').forEach(b => b.addEventListener('mousedown', e => {
+    e.preventDefault();
+    _calM += parseInt(b.dataset.nav, 10);
+    if (_calM < 0) { _calM = 11; _calY--; }
+    if (_calM > 11) { _calM = 0; _calY++; }
+    renderCal(); posCal();
+  }));
+  el.querySelectorAll('.cal-day').forEach(b => b.addEventListener('mousedown', e => {
+    e.preventDefault();
+    const dd = String(b.dataset.day).padStart(2, '0');
+    const mm = String(_calM + 1).padStart(2, '0');
+    const inp = _calInput;
+    inp.value = mm + '/' + dd + '/' + _calY;
+    closeCal();
+    inp.dispatchEvent(new Event('input', { bubbles: true }));
+  }));
+}
+function initDateField(input) {
+  const btn = input.parentNode.querySelector('.date-btn');
+  input.addEventListener('input', () => maskDateInput(input));
+  if (btn) btn.addEventListener('mousedown', e => {
+    e.preventDefault();
+    if (_calInput === input && _cal && _cal.style.display !== 'none') closeCal();
+    else openCal(input);
+  });
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') closeCal(); });
 }
 
 // ── Row management ────────────────────────────────────────────────────────────
@@ -713,20 +947,34 @@ function addRow() {
   tr.id = 'row-' + id;
   tr.innerHTML =
     '<td class="row-num">' + n + '</td>' +
-    '<td><input type="text" list="course-list" class="input-course" placeholder="Type or select a course…" oninput="onCourseName(this)" onfocus="onCourseFocus(this)" onblur="onCourseBlur(this)"></td>' +
+    '<td><div class="combo"><input type="text" class="input-course" placeholder="Type or select a course…" autocomplete="off" role="combobox" aria-expanded="false"></div></td>' +
     '<td><input type="number" min="0" max="100" class="input-grade" placeholder="0-100" oninput="onGrade(this)"></td>' +
     '<td class="td-center"><span class="letter-badge">-</span></td>' +
-    '<td><input type="date" class="input-date"></td>' +
-    '<td><input type="date" class="input-date"></td>' +
-    '<td><select class="input-duration" onchange="onDuration(this)">' +
-      '<option value="full">Full Year (1.0)</option>' +
-      '<option value="half">Half Year (0.5)</option>' +
-      '<option value="alt-full">Alt - Full Year (10)</option>' +
-      '<option value="alt-half">Alt - Half Year (5)</option>' +
-    '</select></td>' +
+    '<td><div class="datefield"><input type="text" class="input-date" placeholder="mm/dd/yyyy" inputmode="numeric" maxlength="10" autocomplete="off"><button type="button" class="date-btn" tabindex="-1" aria-label="Open calendar"></button></div></td>' +
+    '<td><div class="datefield"><input type="text" class="input-date" placeholder="mm/dd/yyyy" inputmode="numeric" maxlength="10" autocomplete="off"><button type="button" class="date-btn" tabindex="-1" aria-label="Open calendar"></button></div></td>' +
+    '<td><div class="combo"><input type="text" class="input-duration" readonly value="Full Year (1.0)" data-value="full" autocomplete="off" role="combobox" aria-expanded="false"></div></td>' +
     '<td class="td-credits">1.0</td>' +
     '<td><button class="btn-remove" onclick="removeRow(this)" title="Remove">×</button></td>';
   tbody.appendChild(tr);
+
+  // Wire up the custom dropdowns and date fields for this row.
+  const courseInput = tr.querySelector('.input-course');
+  initCombo({
+    input:    courseInput,
+    freeText: true,
+    emptyMsg: 'No matching course — your typed name will be used.',
+    options:  Array.from(document.querySelectorAll('#course-list option')).map(o => o.value),
+    onInput:  () => onCourseName(courseInput),
+    onSelect: () => onCourseName(courseInput),
+  });
+  initCombo({
+    input:    tr.querySelector('.input-duration'),
+    freeText: false,
+    options:  DURATION_OPTS,
+    onSelect: () => { setRowCredits(tr); updateSummary(); },
+  });
+  tr.querySelectorAll('.input-date').forEach(initDateField);
+
   updateSummary();
 }
 
@@ -743,13 +991,21 @@ function renumber() {
 }
 
 function onCourseName(input) {
-  const duration = CATALOG.get(input.value);
-  if (duration) {
-    const row = input.closest('tr');
-    row.querySelector('.input-duration').value = duration;
-    row.querySelector('.td-credits').textContent = creditVal(duration).toFixed(1);
-  }
+  const code = CATALOG.get(input.value);
+  if (code) setRowDuration(input.closest('tr'), code);
   updateSummary();
+}
+
+function setRowDuration(row, code) {
+  const opt = DURATION_OPTS.find(o => o.value === code) || DURATION_OPTS[0];
+  const d = row.querySelector('.input-duration');
+  d.value = opt.label;
+  d.dataset.value = opt.value;
+  setRowCredits(row);
+}
+function setRowCredits(row) {
+  const code = row.querySelector('.input-duration').dataset.value || 'full';
+  row.querySelector('.td-credits').textContent = creditVal(code).toFixed(1);
 }
 
 function onGrade(input) {
@@ -766,11 +1022,6 @@ function onGrade(input) {
   updateSummary();
 }
 
-function onDuration(select) {
-  select.closest('tr').querySelector('.td-credits').textContent =
-    creditVal(select.value).toFixed(1);
-  updateSummary();
-}
 
 function updateSummary() {
   let totalCredits = 0, weighted = 0, creditCount = 0;
@@ -780,7 +1031,7 @@ function updateSummary() {
     if (!name || grade === '') return;
     const g = Number(grade);
     if (g < 0 || g > 100) return;
-    const c = creditVal(tr.querySelector('.input-duration').value);
+    const c = creditVal(tr.querySelector('.input-duration').dataset.value);
     totalCredits += c;
     weighted     += getGPAPoints(g) * c;
     creditCount  += c;
@@ -797,12 +1048,13 @@ function updateSummary() {
 
 // ── PDF generation ────────────────────────────────────────────────────────────
 function fmtDate(str) {
-  if (!str) return '';
-  // <input type="date"> values are always ISO yyyy-mm-dd regardless of the
-  // user's locale, so this renders a consistent zero-padded mm/dd/yyyy everywhere.
-  const [y, m, d] = str.split('-');
-  return String(parseInt(m)).padStart(2, '0') + '/' +
-         String(parseInt(d)).padStart(2, '0') + '/' + y;
+  // Date fields hold mm/dd/yyyy text (entered or set by the custom calendar).
+  // Validate and normalize to zero-padded mm/dd/yyyy; return '' if incomplete.
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec((str || '').trim());
+  if (!m) return '';
+  const mm = +m[1], dd = +m[2], yy = +m[3];
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return '';
+  return String(mm).padStart(2, '0') + '/' + String(dd).padStart(2, '0') + '/' + yy;
 }
 
 function generatePDF() {
@@ -847,7 +1099,7 @@ function generatePDF() {
   doc.setFont('Lexend', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(...GRAY);
-  const currSite = val('curriculumSite') || 'Miacademy';
+  const currSite = (document.getElementById('curriculumSite').dataset.value || '') || 'Miacademy';
   doc.text('Curriculum provided by ' + currSite + '  |  Miaplaza, Inc.', pw / 2, 43.5, { align: 'center' });
 
   // ── Rule ──
@@ -866,9 +1118,9 @@ function generatePDF() {
   y += 6.5;
   doc.setFont('Lexend', 'normal');
   doc.setFontSize(9.5);
-  const dob = document.getElementById('dob').value;
-  const grade = document.getElementById('gradeLevel').value;
-  if (dob)   doc.text('Date of Birth: ' + fmtDate(dob), mg, y);
+  const dob = fmtDate(document.getElementById('dob').value);
+  const grade = document.getElementById('gradeLevel').dataset.value || '';
+  if (dob)   doc.text('Date of Birth: ' + dob, mg, y);
   if (grade) doc.text('Grade: ' + grade, pw - mg, y, { align: 'right' });
   if (dob || grade) y += 6;
 
@@ -896,7 +1148,7 @@ function generatePDF() {
     const gStr  = tr.querySelector('.input-grade').value;
     const start = tr.querySelectorAll('.input-date')[0].value;
     const end   = tr.querySelectorAll('.input-date')[1].value;
-    const dur   = tr.querySelector('.input-duration').value;
+    const dur   = tr.querySelector('.input-duration').dataset.value;
     if (!name) return;
     const g = gStr !== '' ? Number(gStr) : null;
     const gradeCell = g !== null ? g + ' (' + getLetterGrade(g) + ')' : '';
@@ -1025,6 +1277,24 @@ document.addEventListener('click', function(e) {
 });
 
 // ── Init ──────────────────────────────────────────────────────────────────────
+initDateField(document.getElementById('dob'));
+initCombo({
+  input:    document.getElementById('gradeLevel'),
+  freeText: false,
+  options:  [{ label: '— Select —', value: '' },
+             { label: 'Pre-K', value: 'Pre-K' }, { label: 'Kindergarten', value: 'Kindergarten' },
+             { label: '1st Grade', value: '1st Grade' }, { label: '2nd Grade', value: '2nd Grade' },
+             { label: '3rd Grade', value: '3rd Grade' }, { label: '4th Grade', value: '4th Grade' },
+             { label: '5th Grade', value: '5th Grade' }, { label: '6th Grade', value: '6th Grade' },
+             { label: '7th Grade', value: '7th Grade' }, { label: '8th Grade', value: '8th Grade' },
+             { label: '9th Grade', value: '9th Grade' }, { label: '10th Grade', value: '10th Grade' },
+             { label: '11th Grade', value: '11th Grade' }, { label: '12th Grade', value: '12th Grade' }],
+});
+initCombo({
+  input:    document.getElementById('curriculumSite'),
+  freeText: false,
+  options:  [{ label: '— Select —', value: '' }, 'Miacademy', 'Always Icecream', 'Clever Dragons', 'MiaPrep'],
+});
 addRow(); addRow(); addRow();
 </script>
 </body>
