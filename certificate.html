@@ -119,7 +119,7 @@ body {
   margin: 0 auto;
   padding: 38px 28px 60px;
   display: grid;
-  grid-template-columns: 310px 1fr;
+  grid-template-columns: 390px 1fr;
   gap: 38px;
   align-items: start;
 }
@@ -202,7 +202,7 @@ body {
 
 .field select {
   width: 100%;
-  padding: 9px 12px;
+  padding: 9px 34px 9px 12px;
   border: 1.5px solid var(--border);
   border-radius: 7px;
   font-family: 'Lexend', sans-serif;
@@ -215,6 +215,52 @@ body {
   background-position: right 12px center;
   cursor: pointer;
 }
+/* Show the default "Select grade level" prompt as a placeholder, matching empty inputs. */
+.field select:has(option[value=""]:checked) { color: #bbb; }
+.field select option { color: #333; }
+
+/* Custom searchable course dropdown (combobox) */
+.combo { position: relative; }
+/* Give the course input the same chevron as the grade <select> for consistency. */
+.combo > input {
+  appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+/* Read-only combo (grade level) acts like a <select>: clickable, no text caret. */
+.combo > input[readonly] { cursor: pointer; background-color: #fff; caret-color: transparent; }
+.combo-list {
+  position: absolute;
+  z-index: 50;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  max-height: 260px;
+  overflow-y: auto;
+}
+.combo-list[hidden] { display: none; }
+.combo-list li {
+  padding: 8px 11px;
+  border-radius: 5px;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.combo-list li:hover,
+.combo-list li.active { background: var(--teal-light); }
+.combo-list li.empty { color: #999; cursor: default; }
 .field select:focus {
   outline: none;
   border-color: var(--teal);
@@ -461,28 +507,21 @@ body {
 
     <div class="field">
       <label for="f-course">Course Name</label>
-      <input id="f-course" type="text" placeholder="Search or type a course…" list="course-list" oninput="refresh()">
+      <div class="combo">
+        <input id="f-course" type="text" placeholder="Search or type a course…" autocomplete="off"
+               role="combobox" aria-expanded="false" aria-controls="course-options" aria-autocomplete="list">
+        <ul id="course-options" class="combo-list" role="listbox" hidden></ul>
+      </div>
       <div class="field-hint">Start typing to search our course catalogs, or enter your own.</div>
     </div>
 
     <div class="field">
       <label for="f-grade">Grade Level</label>
-      <select id="f-grade" onchange="refresh()">
-        <option value="">— Select grade level (optional) —</option>
-        <option value="Kindergarten">Kindergarten</option>
-        <option value="1st Grade">1st Grade</option>
-        <option value="2nd Grade">2nd Grade</option>
-        <option value="3rd Grade">3rd Grade</option>
-        <option value="4th Grade">4th Grade</option>
-        <option value="5th Grade">5th Grade</option>
-        <option value="6th Grade">6th Grade</option>
-        <option value="7th Grade">7th Grade</option>
-        <option value="8th Grade">8th Grade</option>
-        <option value="9th Grade">9th Grade</option>
-        <option value="10th Grade">10th Grade</option>
-        <option value="11th Grade">11th Grade</option>
-        <option value="12th Grade">12th Grade</option>
-      </select>
+      <div class="combo">
+        <input id="f-grade" type="text" placeholder="Select grade level (optional)" autocomplete="off" readonly
+               role="combobox" aria-expanded="false" aria-controls="grade-options">
+        <ul id="grade-options" class="combo-list" role="listbox" hidden></ul>
+      </div>
     </div>
 
     <div class="field">
@@ -789,7 +828,105 @@ window.addEventListener('load', () => {
   scaleCert();
   // Re-measure once web fonts finish loading (column width can shift with display=swap).
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(scaleCert);
+
+  // Course: free-text search dropdown. Grade: pick-only dropdown.
+  // Both use the same styled list so the two menus look identical.
+  initCombo({
+    input:    document.getElementById('f-course'),
+    list:     document.getElementById('course-options'),
+    options:  Array.from(document.querySelectorAll('#course-list option')).map(o => o.value),
+    freeText: true,
+    emptyMsg: 'No matching course — your typed name will be used.',
+  });
+  initCombo({
+    input:   document.getElementById('f-grade'),
+    list:    document.getElementById('grade-options'),
+    options: ['Select grade level (optional)', 'Kindergarten',
+              '1st Grade','2nd Grade','3rd Grade','4th Grade','5th Grade','6th Grade',
+              '7th Grade','8th Grade','9th Grade','10th Grade','11th Grade','12th Grade'],
+    // The first item clears the selection (mirrors the old "optional" placeholder).
+    valueFor: label => (label === 'Select grade level (optional)' ? '' : label),
+    freeText: false,
+  });
 });
+
+/* ---------- shared styled dropdown (combobox) ----------
+   Replaces the native <datalist> (which kept filtering to the selected value) and
+   the native <select> (whose open menu can't be styled), so the Course and Grade
+   menus render with identical Lexend styling. */
+function initCombo({ input, list, options, freeText, emptyMsg, valueFor }) {
+  const toValue = valueFor || (label => label);
+  let activeIdx = -1;
+
+  function open()  { list.hidden = false; input.setAttribute('aria-expanded', 'true'); }
+  function close() { list.hidden = true;  input.setAttribute('aria-expanded', 'false'); activeIdx = -1; }
+
+  // query === null means "show everything" (used when the field is first focused).
+  function render(query) {
+    const q = (query || '').trim().toLowerCase();
+    const matches = (freeText && q) ? options.filter(c => c.toLowerCase().includes(q)) : options;
+    list.innerHTML = '';
+    activeIdx = -1;
+    if (!matches.length) {
+      const li = document.createElement('li');
+      li.className = 'empty';
+      li.textContent = emptyMsg || 'No matches.';
+      list.appendChild(li);
+      open();
+      return;
+    }
+    matches.forEach(label => {
+      const li = document.createElement('li');
+      li.textContent = label;
+      li.setAttribute('role', 'option');
+      li.title = label;
+      // mousedown fires before the input's blur, so the click registers reliably.
+      li.addEventListener('mousedown', e => {
+        e.preventDefault();
+        input.value = toValue(label);
+        close();
+        refresh();
+      });
+      list.appendChild(li);
+    });
+    open();
+  }
+
+  function items() { return Array.from(list.querySelectorAll('li:not(.empty)')); }
+  function highlight(i) {
+    const els = items();
+    els.forEach(el => el.classList.remove('active'));
+    if (i >= 0 && i < els.length) {
+      els[i].classList.add('active');
+      els[i].scrollIntoView({ block: 'nearest' });
+    }
+  }
+
+  // Focusing the field always reveals the complete list (the key fix).
+  input.addEventListener('focus', () => render(null));
+  if (freeText) input.addEventListener('input', () => { render(input.value); refresh(); });
+
+  // Clicking the field (incl. the arrow) toggles the list like a native <select>.
+  // After picking an option the input keeps focus, so 'focus' won't fire again —
+  // this lets a second click reopen/close without having to click away first.
+  input.addEventListener('mousedown', () => {
+    if (document.activeElement === input) {
+      if (list.hidden) render(null);
+      else close();
+    }
+    // If not yet focused, the 'focus' handler opens it.
+  });
+
+  input.addEventListener('keydown', e => {
+    const els = items();
+    if (e.key === 'ArrowDown')      { e.preventDefault(); if (list.hidden) render(null); activeIdx = Math.min(activeIdx + 1, els.length - 1); highlight(activeIdx); }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); highlight(activeIdx); }
+    else if (e.key === 'Enter' && activeIdx >= 0 && els[activeIdx]) { e.preventDefault(); input.value = toValue(els[activeIdx].textContent); close(); refresh(); }
+    else if (e.key === 'Escape')    { close(); }
+  });
+
+  input.addEventListener('blur', () => { close(); refresh(); });
+}
 
 // Debounce resize so rapid window changes don't thrash layout.
 let _rafScale;

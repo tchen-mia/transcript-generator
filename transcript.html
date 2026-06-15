@@ -798,8 +798,11 @@ function updateSummary() {
 // ── PDF generation ────────────────────────────────────────────────────────────
 function fmtDate(str) {
   if (!str) return '';
+  // <input type="date"> values are always ISO yyyy-mm-dd regardless of the
+  // user's locale, so this renders a consistent zero-padded mm/dd/yyyy everywhere.
   const [y, m, d] = str.split('-');
-  return parseInt(m) + '/' + parseInt(d) + '/' + y;
+  return String(parseInt(m)).padStart(2, '0') + '/' +
+         String(parseInt(d)).padStart(2, '0') + '/' + y;
 }
 
 function generatePDF() {
@@ -928,9 +931,9 @@ function generatePDF() {
     alternateRowStyles: { fillColor: TEAL_BG },
     columnStyles: {
       0: { cellWidth: 'auto', halign: 'left' },
-      1: { cellWidth: 30, halign: 'center' },
-      2: { cellWidth: 28, halign: 'center' },
-      3: { cellWidth: 44, halign: 'center' },
+      1: { cellWidth: 24, halign: 'center' },
+      2: { cellWidth: 22, halign: 'center' },
+      3: { cellWidth: 60, halign: 'center' },
     },
     margin: { left: mg, right: mg },
     theme: 'plain',
