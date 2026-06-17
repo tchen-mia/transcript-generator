@@ -45,10 +45,22 @@ the browser**:
 The pages load a few external resources. **None of them receive any
 user-entered information:**
 
-- **Web fonts** and **PDF libraries** are loaded from public CDNs (the CDN sees
-  only the standard request metadata, e.g. IP/referrer).
+- **PDF libraries** (jsPDF, html2canvas, jsPDF-AutoTable) are **self-hosted**
+  in `vendor/` and loaded same-origin with Subresource Integrity (`integrity`)
+  hashes — no third-party CDN is involved in delivering executable code.
+- **Web fonts** are loaded from a public font host (which sees only standard
+  request metadata, e.g. IP/referrer).
 - **Privacy-focused, cookieless analytics** records anonymous page views and a
   single "download" event. Only the event name is recorded — no field values.
+
+### Script & content security
+
+- A **Content-Security-Policy** (`<meta http-equiv>`) restricts which origins
+  scripts may load from and locks down `connect-src`, so that **no script —
+  even a compromised one — can transmit page data to an unapproved
+  destination**.
+- Third-party executable libraries are **pinned and self-hosted with SRI**, so a
+  CDN cannot silently alter or swap them.
 
 ## Local development
 
