@@ -7,7 +7,7 @@
 <!-- Content-Security-Policy: scripts only from this origin + analytics; connect-src is locked so no
      script can send page data anywhere except the analytics + the discount-intake Worker.
      NOTE: replace <WORKER_HOST> with the deployed Worker host (keep in sync with SUBMIT_ENDPOINT). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://cloud.umami.is https://gateway.umami.is https://discount-form-worker.example.workers.dev; object-src 'none'; base-uri 'self'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://cloud.umami.is https://gateway.umami.is https://discount-form-worker.tchen-f8e.workers.dev; object-src 'none'; base-uri 'self'; form-action 'none'">
 
 <title>Subscription Discount Finder | Miacademy</title>
 <meta name="description" content="Find the best Miaplaza subscription discount you qualify for — military, multi-student, and income-based options. For Miacademy families.">
@@ -232,7 +232,7 @@ body {
 'use strict';
 
 /* ── Config (update WORKER host to the deployed Worker; keep CSP connect-src in sync) ── */
-const SUBMIT_ENDPOINT = 'https://discount-form-worker.example.workers.dev/submit';
+const SUBMIT_ENDPOINT = 'https://discount-form-worker.tchen-f8e.workers.dev/submit';
 const FORM_VERSION    = 'discount-2026-06-17';
 const CONSENT_VERSION = 'certify-v1';
 const STATE_FUNDING_URL = 'https://miacademy.co/homeschool-curriculum/state-funding-for-miacademy/';
