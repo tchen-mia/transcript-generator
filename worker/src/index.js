@@ -182,20 +182,34 @@ async function verifyTurnstile(token, request, env) {
 }
 
 /* ──────────────────────── Airtable write ──────────────────────── */
+// Human-readable labels so the Airtable rows read like the form.
+const GRADE_LABEL = { k8: 'Kindergarten - 8th', '7-12': '7th - 12th', both: 'Both grade groups' };
+const STUDENTS_LABEL = { '1': '1', '2': '2', '3': '3', '4': '4', '5plus': 'More than 4' };
+const STATE_LABEL = { AK: 'Alaska', HI: "Hawai'i", '48': 'Other / Lower 48' };
+const yesNo = (v) => (v === true ? 'Yes' : v === false ? 'No' : '');
+
 async function writeToAirtable(value, code, env) {
   const endpoint = `https://api.airtable.com/v0/${env.AIRTABLE_BASE_ID}/${encodeURIComponent(env.AIRTABLE_TABLE)}`;
+  const a = value.answers || {};
+  // Column names must match the Airtable table exactly.
   const fields = {
+    'Date': new Date().toISOString(),
+    'First Name': a.firstName || '',
+    'Last Name': a.lastName || '',
     'Email': value.email,
-    'Name': value.name,
-    'Discount Code': code,
-    'Form Version': value.formVersion,
-    'Submission ID': value.submissionId, // mark unique in Airtable for idempotency
-    'Consent': value.consent === true,
-    'Consent Version': value.consentVersion || '',
-    'Client Time': value.timestamp || null,
-    'Received At': new Date().toISOString(),
-    'Answers JSON': JSON.stringify(value.answers),
+    'Grade': GRADE_LABEL[a.gradeGroup] || a.gradeGroup || '',
+    'Students': STUDENTS_LABEL[a.numStudents] || a.numStudents || '',
+    'Military': yesNo(a.military),
+    'Income-Based': yesNo(a.incomeBased),
+    'State': STATE_LABEL[a.location] || a.location || '',
+    'Declaration': value.consent === true ? 'I accept' : '',
+    'Send Code': code,
   };
+  // Only set the Number columns when a number is present (income-based path),
+  // so an empty value is never sent to a Number field.
+  if (typeof a.householdIncome === 'number') fields['Income'] = a.householdIncome;
+  if (typeof a.householdSize === 'number') fields['Household'] = a.householdSize;
+
   const ctl = new AbortController();
   const t = setTimeout(() => ctl.abort(), 5000);
   try {
