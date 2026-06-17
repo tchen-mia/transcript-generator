@@ -98,7 +98,7 @@ body {
 
 /* Combobox (dropdown) — same engine/style as the other tools */
 .combo { position: relative; }
-.combo > input { -webkit-appearance: none; appearance: none; width: 100%; padding: 9px 30px 9px 11px;
+.field .combo > input { -webkit-appearance: none; appearance: none; width: 100%; padding: 9px 30px 9px 11px;
   border: 1.5px solid var(--border); border-radius: 6px; font-family: inherit; font-size: 14px; color: var(--text); background-color: #FAFFFF;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 10px center; }
@@ -159,6 +159,11 @@ body {
 
 [hidden] { display: none !important; }
 
+/* Stepper */
+.step-nav { display: flex; gap: 12px; align-items: center; margin-top: 6px; }
+#backBtn { margin-right: auto; }
+.step h2:focus { outline: none; }   /* heading is focused for screen readers; hide the box */
+
 @media (max-width: 460px) {
   .site-header h1 { font-size: 21px; }
   .code-chip { font-size: 22px; }
@@ -185,25 +190,17 @@ body {
   </div>
 
   <form id="discountForm" novalidate>
-    <!-- Engine renders question cards here -->
-    <div id="questions"></div>
+    <!-- Engine renders one step (card) at a time here -->
+    <div id="stepContainer"></div>
 
     <!-- Honeypot (bots only) -->
     <div class="hp" aria-hidden="true"><label>Company<input type="text" id="hp" name="company" tabindex="-1" autocomplete="off"></label></div>
 
-    <!-- Consent (Page 9) -->
-    <div class="card" id="consentCard">
-      <div class="step-label">Certification</div>
-      <label class="consent">
-        <input type="checkbox" id="consent">
-        <span>I certify that the information I have provided is accurate to the best of my knowledge. Submitting will log my responses and calculate my best rate. (<a href="https://miacademy.co/help/privacy" target="_blank" rel="noopener">how we use your information</a>)</span>
-      </label>
+    <div class="step-nav">
+      <button type="button" class="btn-secondary" id="backBtn" hidden>← Back</button>
+      <button type="submit" class="btn-primary" id="nextBtn" data-umami-event="discount-next">Next</button>
     </div>
-
-    <div class="submit-row">
-      <div class="error-summary" id="errorSummary" role="alert" aria-live="assertive" hidden></div>
-      <button type="submit" class="btn-primary" id="submitBtn" data-umami-event="discount-submit">Find my discount</button>
-    </div>
+    <div class="error-summary" id="errorSummary" role="alert" aria-live="assertive" hidden style="margin-top:10px;"></div>
   </form>
 
   <!-- Result -->
@@ -371,7 +368,7 @@ function toggleTip(btn) {
 }
 
 /* ── Rendering ── */
-function setAnswer(id, val) { answers[id] = val; recompute(); }
+function setAnswer(id, val) { answers[id] = val; }
 
 function helpAndLinks(q) {
   let h = '';
@@ -383,102 +380,128 @@ function helpAndLinks(q) {
 }
 function escapeHtml(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
-function renderForm() {
-  const root = document.getElementById('questions');
-  root.innerHTML = '';
-  let card = null;
-
-  function newCard(stepLabel, heading, note) {
-    card = document.createElement('div'); card.className = 'card';
-    if (stepLabel) card.innerHTML += '<div class="step-label">' + escapeHtml(stepLabel) + '</div>';
-    if (heading) card.innerHTML += '<h2>' + escapeHtml(heading) + '</h2>';
-    if (note) card.innerHTML += '<p class="note">' + note + '</p>';
-    root.appendChild(card);
-    return card;
+function renderQuestionInto(card, q) {
+  const wrap = document.createElement('div'); wrap.className = 'field'; wrap.dataset.qid = q.id;
+  const labelHtml = '<span class="q-label" id="lbl-' + q.id + '">' + escapeHtml(q.label) + '</span>';
+  if (q.type === 'text' || q.type === 'email' || q.type === 'number') {
+    const t = q.type === 'number' ? 'number' : (q.type === 'email' ? 'email' : 'text');
+    wrap.innerHTML = '<label for="f-' + q.id + '">' + escapeHtml(q.label) + '</label>' + helpAndLinks(q) +
+      '<input id="f-' + q.id + '" type="' + t + '"' +
+      (q.type === 'email' ? ' inputmode="email"' : q.type === 'number' ? ' inputmode="numeric"' : '') +
+      (q.maxLength ? ' maxlength="' + q.maxLength + '"' : '') +
+      ' autocomplete="off" aria-describedby="err-' + q.id + '">' +
+      '<div class="field-error" id="err-' + q.id + '" hidden></div>';
+    card.appendChild(wrap);
+    const input = wrap.querySelector('input');
+    input.addEventListener('input', () => setAnswer(q.id, q.type === 'number' ? (input.value === '' ? '' : Number(input.value)) : input.value));
+  } else if (q.type === 'single') {
+    wrap.innerHTML = labelHtml + helpAndLinks(q) +
+      '<div class="combo"><input type="text" id="f-' + q.id + '" readonly role="combobox" aria-expanded="false" aria-labelledby="lbl-' + q.id + '" placeholder="— Select —"></div>' +
+      '<div class="field-error" id="err-' + q.id + '" hidden></div>';
+    card.appendChild(wrap);
+    initCombo({ input: wrap.querySelector('input'), options: q.options, onSelect: (o) => setAnswer(q.id, o.value) });
+  } else if (q.type === 'boolean' || q.type === 'multi') {
+    const opts = q.type === 'boolean' ? [{ label: 'Yes', value: true }, { label: 'No', value: false }] : q.options;
+    const inputType = q.type === 'multi' ? 'checkbox' : 'radio';
+    let html = labelHtml + helpAndLinks(q) + '<div class="opt-group" role="' + (q.type === 'multi' ? 'group' : 'radiogroup') + '" aria-labelledby="lbl-' + q.id + '">';
+    opts.forEach((o, i) => { html += '<label class="opt"><input type="' + inputType + '" name="' + q.id + '" value="' + i + '">' + escapeHtml(o.label) + '</label>'; });
+    html += '</div><div class="field-error" id="err-' + q.id + '" hidden></div>';
+    wrap.innerHTML = html;
+    card.appendChild(wrap);
+    wrap.querySelectorAll('input').forEach((inp, i) => {
+      inp.addEventListener('change', () => {
+        wrap.querySelectorAll('.opt').forEach((o) => o.classList.remove('checked'));
+        if (q.type === 'multi') {
+          const vals = Array.from(wrap.querySelectorAll('input:checked')).map((c) => opts[Number(c.value)].value);
+          wrap.querySelectorAll('input:checked').forEach((c) => c.closest('.opt').classList.add('checked'));
+          setAnswer(q.id, vals);
+        } else { inp.closest('.opt').classList.add('checked'); setAnswer(q.id, opts[i].value); }
+      });
+    });
   }
+}
 
-  QUESTIONS.forEach((q) => {
-    if (q.type === 'info') {
-      const c = newCard('Good to know', q.label, escapeHtml(q.html));
-      if (q.statesNote) c.innerHTML += '<p class="note"><span class="intro-states">' + STATES + '</span></p>';
-      if (q.links) c.innerHTML += '<div class="link-row">' + q.links.map((l) => '<a href="' + l.url + '" target="_blank" rel="noopener">' + escapeHtml(l.label) + ' ↗</a>').join('') + '</div>';
-      return;
-    }
-    if (q.type === 'section') { newCard(null, q.label, q.note ? escapeHtml(q.note) : ''); return; }
+/* ── Steps (one shown at a time; mirrors the original Typeform pages) ── */
+const QBYID = {}; QUESTIONS.forEach((q) => { QBYID[q.id] = q; });
+const STEPS = [
+  { qids: ['_intro'] },
+  { qids: ['_contact', 'firstName', 'lastName', 'email'] },
+  { qids: ['_students', 'gradeGroup'] },
+  { qids: ['numStudents'] },
+  { qids: ['military'] },
+  { qids: ['incomeBased'] },
+  { qids: ['householdIncome'] },
+  { qids: ['householdSize'] },
+  { qids: ['location'] },
+  { kind: 'consent' },
+];
+let curStep = 0;
 
-    // input question — append to the current card (or start one)
-    if (!card) newCard(null, null, null);
-    const wrap = document.createElement('div'); wrap.className = 'field'; wrap.dataset.qid = q.id;
-    const labelHtml = '<span class="q-label" id="lbl-' + q.id + '">' + escapeHtml(q.label) + '</span>';
-
-    if (q.type === 'text' || q.type === 'email' || q.type === 'number') {
-      const t = q.type === 'number' ? 'number' : (q.type === 'email' ? 'email' : 'text');
-      wrap.innerHTML = '<label for="f-' + q.id + '">' + escapeHtml(q.label) + '</label>' + helpAndLinks(q) +
-        '<input id="f-' + q.id + '" type="' + t + '"' +
-        (q.type === 'email' ? ' inputmode="email"' : q.type === 'number' ? ' inputmode="numeric"' : '') +
-        (q.maxLength ? ' maxlength="' + q.maxLength + '"' : '') +
-        ' autocomplete="off" aria-describedby="err-' + q.id + '">' +
-        '<div class="field-error" id="err-' + q.id + '" hidden></div>';
-      card.appendChild(wrap);
-      const input = wrap.querySelector('input');
-      input.addEventListener('input', () => setAnswer(q.id, q.type === 'number' ? (input.value === '' ? '' : Number(input.value)) : input.value));
-    } else if (q.type === 'single') {
-      wrap.innerHTML = labelHtml + helpAndLinks(q) +
-        '<div class="combo"><input type="text" id="f-' + q.id + '" readonly role="combobox" aria-expanded="false" aria-labelledby="lbl-' + q.id + '" placeholder="— Select —"></div>' +
-        '<div class="field-error" id="err-' + q.id + '" hidden></div>';
-      card.appendChild(wrap);
-      initCombo({ input: wrap.querySelector('input'), options: q.options, onSelect: (o) => setAnswer(q.id, o.value) });
-    } else if (q.type === 'boolean' || q.type === 'multi') {
-      const opts = q.type === 'boolean' ? [{ label: 'Yes', value: true }, { label: 'No', value: false }] : q.options;
-      const inputType = q.type === 'multi' ? 'checkbox' : 'radio';
-      let html = labelHtml + helpAndLinks(q) + '<div class="opt-group" role="' + (q.type === 'multi' ? 'group' : 'radiogroup') + '" aria-labelledby="lbl-' + q.id + '">';
-      opts.forEach((o, i) => {
-        html += '<label class="opt"><input type="' + inputType + '" name="' + q.id + '" value="' + i + '">' + escapeHtml(o.label) + '</label>';
-      });
-      html += '</div><div class="field-error" id="err-' + q.id + '" hidden></div>';
-      wrap.innerHTML = html;
-      card.appendChild(wrap);
-      wrap.querySelectorAll('input').forEach((inp, i) => {
-        inp.addEventListener('change', () => {
-          wrap.querySelectorAll('.opt').forEach((o) => o.classList.remove('checked'));
-          if (q.type === 'multi') {
-            const vals = Array.from(wrap.querySelectorAll('input:checked')).map((c) => opts[Number(c.value)].value);
-            wrap.querySelectorAll('input:checked').forEach((c) => c.closest('.opt').classList.add('checked'));
-            setAnswer(q.id, vals);
-          } else {
-            inp.closest('.opt').classList.add('checked');
-            setAnswer(q.id, opts[i].value);
-          }
-        });
+function buildSteps() {
+  const root = document.getElementById('stepContainer');
+  root.innerHTML = '';
+  STEPS.forEach((step, i) => {
+    const sec = document.createElement('section'); sec.className = 'step'; sec.dataset.step = i; sec.hidden = true;
+    const card = document.createElement('div'); card.className = 'card'; sec.appendChild(card);
+    if (step.kind === 'consent') {
+      card.innerHTML = '<div class="step-label">Certification</div>' +
+        '<label class="consent"><input type="checkbox" id="consent">' +
+        '<span>I certify that the information I have provided is accurate to the best of my knowledge. Submitting will log my responses and calculate my best rate. (<a href="https://miacademy.co/help/privacy" target="_blank" rel="noopener">how we use your information</a>)</span></label>' +
+        '<div class="field-error" id="err-consent" hidden></div>';
+    } else {
+      step.qids.forEach((id) => {
+        const q = QBYID[id];
+        if (q.type === 'info') {
+          let h = '<div class="step-label">Good to know</div><h2>' + escapeHtml(q.label) + '</h2><p class="note">' + escapeHtml(q.html) + '</p>';
+          if (q.statesNote) h += '<p class="note"><span class="intro-states">' + STATES + '</span></p>';
+          if (q.links) h += '<div class="link-row">' + q.links.map((l) => '<a href="' + l.url + '" target="_blank" rel="noopener">' + escapeHtml(l.label) + ' ↗</a>').join('') + '</div>';
+          card.insertAdjacentHTML('beforeend', h);
+        } else if (q.type === 'section') {
+          card.insertAdjacentHTML('beforeend', '<h2>' + escapeHtml(q.label) + '</h2>' + (q.note ? '<p class="note">' + escapeHtml(q.note) + '</p>' : ''));
+        } else {
+          renderQuestionInto(card, q);
+        }
       });
     }
+    root.appendChild(sec);
   });
-  recompute();
 }
 
-/* ── Recompute visibility / progress / pruning ── */
-function recompute() {
-  QUESTIONS.forEach((q) => {
-    if (!isInput(q)) return;
-    const wrap = document.querySelector('[data-qid="' + q.id + '"]');
-    if (!wrap) return;
-    const vis = isVisible(q);
-    wrap.hidden = !vis;
-    if (!vis && q.id in answers) { delete answers[q.id]; resetControl(q); }
-  });
-  const req = QUESTIONS.filter((q) => isInput(q) && q.required && isVisible(q));
-  const done = req.filter(isAnswered);
-  const pct = req.length ? Math.round((done.length / req.length) * 100) : 0;
-  const fill = document.getElementById('progressFill');
-  fill.style.width = pct + '%'; fill.setAttribute('aria-valuenow', String(pct));
+/* ── Navigation ── */
+function stepVisible(i) {
+  const step = STEPS[i];
+  if (step.kind === 'consent') return true;
+  const inputs = step.qids.map((id) => QBYID[id]).filter((q) => q && isInput(q));
+  if (!inputs.length) return true;
+  return inputs.some((q) => isVisible(q));
 }
-function resetControl(q) {
-  const wrap = document.querySelector('[data-qid="' + q.id + '"]'); if (!wrap) return;
-  wrap.querySelectorAll('input').forEach((i) => { if (i.type === 'radio' || i.type === 'checkbox') i.checked = false; else { i.value = ''; delete i.dataset.value; } });
-  wrap.querySelectorAll('.opt').forEach((o) => o.classList.remove('checked'));
-}
+function firstVisible(from, dir) { for (let i = from; i >= 0 && i < STEPS.length; i += dir) if (stepVisible(i)) return i; return -1; }
+function isLastVisible(i) { return firstVisible(i + 1, 1) === -1; }
+function visibleSteps() { return STEPS.map((_, i) => i).filter(stepVisible); }
 
-/* ── Validation ── */
+function updateProgress() {
+  const vis = visibleSteps(); const idx = vis.indexOf(curStep);
+  const pct = vis.length ? Math.round(((idx + 1) / vis.length) * 100) : 0;
+  const fill = document.getElementById('progressFill'); fill.style.width = pct + '%'; fill.setAttribute('aria-valuenow', String(pct));
+}
+function showStep(i) {
+  curStep = i;
+  document.querySelectorAll('.step').forEach((s) => { s.hidden = Number(s.dataset.step) !== i; });
+  clearErrors();
+  document.getElementById('backBtn').hidden = firstVisible(i - 1, -1) === -1;
+  const last = isLastVisible(i);
+  const nextBtn = document.getElementById('nextBtn');
+  nextBtn.textContent = last ? 'Find my discount' : 'Next';
+  nextBtn.setAttribute('data-umami-event', last ? 'discount-submit' : 'discount-next');
+  updateProgress();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const sec = document.querySelector('.step[data-step="' + i + '"]');
+  const h = sec && sec.querySelector('h2'); if (h) { h.setAttribute('tabindex', '-1'); h.focus(); }
+}
+function goNext() { if (!validateStep(curStep)) return; if (isLastVisible(curStep)) { doSubmit(); return; } showStep(firstVisible(curStep + 1, 1)); }
+function goBack() { const p = firstVisible(curStep - 1, -1); if (p >= 0) showStep(p); }
+
+/* ── Validation (current step only) ── */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function showError(q, msg) {
   const e = document.getElementById('err-' + q.id); if (e) { e.textContent = msg; e.hidden = false; }
@@ -489,31 +512,33 @@ function clearErrors() {
   document.querySelectorAll('[aria-invalid]').forEach((i) => i.removeAttribute('aria-invalid'));
   document.getElementById('errorSummary').hidden = true;
 }
-function validateAll() {
+function validateStep(i) {
   clearErrors();
-  let firstBad = null, count = 0;
-  QUESTIONS.forEach((q) => {
-    if (!isInput(q) || !isVisible(q)) return;
-    const v = answers[q.id];
-    let bad = '';
-    if (q.required && !isAnswered(q)) bad = 'This field is required.';
-    else if (q.type === 'email' && v && !EMAIL_RE.test(v)) bad = 'Please enter a valid email address.';
-    else if (q.type === 'number' && v !== '' && v !== undefined) {
-      if (Number.isNaN(Number(v))) bad = 'Please enter a number.';
-      else if (q.min != null && Number(v) < q.min) bad = 'Please enter ' + q.min + ' or more.';
-      else if (q.max != null && Number(v) > q.max) bad = 'That value looks too large.';
+  const step = STEPS[i]; let firstBad = null, count = 0;
+  if (step.kind === 'consent') {
+    if (!document.getElementById('consent').checked) {
+      const e = document.getElementById('err-consent'); if (e) { e.textContent = 'Please confirm to continue.'; e.hidden = false; }
+      count++; firstBad = 'consent';
     }
-    if (bad) { showError(q, bad); count++; if (!firstBad) firstBad = q.id; }
-  });
-  if (!document.getElementById('consent').checked) {
-    count++; if (!firstBad) firstBad = 'consent';
+  } else {
+    step.qids.map((id) => QBYID[id]).filter((q) => q && isInput(q) && isVisible(q)).forEach((q) => {
+      const v = answers[q.id]; let bad = '';
+      if (q.required && !isAnswered(q)) bad = 'This field is required.';
+      else if (q.type === 'email' && v && !EMAIL_RE.test(v)) bad = 'Please enter a valid email address.';
+      else if (q.type === 'number' && v !== '' && v !== undefined) {
+        if (Number.isNaN(Number(v))) bad = 'Please enter a number.';
+        else if (q.min != null && Number(v) < q.min) bad = 'Please enter ' + q.min + ' or more.';
+        else if (q.max != null && Number(v) > q.max) bad = 'That value looks too large.';
+      }
+      if (bad) { showError(q, bad); count++; if (!firstBad) firstBad = q.id; }
+    });
   }
   if (count) {
     const s = document.getElementById('errorSummary');
-    s.textContent = 'Please complete the highlighted ' + (count === 1 ? 'item' : 'items') + ' (' + count + ').';
+    s.textContent = 'Please complete the highlighted ' + (count === 1 ? 'item' : 'items') + '.';
     s.hidden = false;
-    const el = document.getElementById('f-' + firstBad) || document.getElementById(firstBad === 'consent' ? 'consent' : '');
-    if (el) el.focus();
+    const el = document.getElementById('f-' + firstBad) || document.getElementById(firstBad);
+    if (el && el.focus) el.focus();
     return false;
   }
   return true;
@@ -528,19 +553,15 @@ function visibleAnswers() {
 let submissionId = null;
 function getSubmissionId() { if (!submissionId) submissionId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.round(Math.random() * 1e9)); return submissionId; }
 
-async function submitForm(e) {
-  if (e) e.preventDefault();
+async function doSubmit() {
   if (document.getElementById('hp').value) return; // honeypot tripped — silently no-op
-  if (!validateAll()) return;
-
-  const va = visibleAnswers();
   const payload = {
     submissionId: getSubmissionId(),
     formVersion: FORM_VERSION,
     timestamp: new Date().toISOString(),
     name: ((answers.firstName || '') + ' ' + (answers.lastName || '')).trim(),
     email: answers.email || '',
-    answers: va,
+    answers: visibleAnswers(),
     consent: true,
     consentVersion: CONSENT_VERSION,
     company: '',
@@ -548,7 +569,6 @@ async function submitForm(e) {
     pageUrl: location.href,
     userAgent: navigator.userAgent,
   };
-
   setLoading(true);
   try {
     const res = await fetch(SUBMIT_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
@@ -556,15 +576,11 @@ async function submitForm(e) {
     const data = await res.json();
     if (!data || !data.ok || !data.code) throw new Error('bad response');
     showResult(data.code, data.offer || {});
-  } catch (err) {
-    showRetry();
-  } finally {
-    setLoading(false);
-  }
+  } catch (err) { showRetry(); } finally { setLoading(false); }
 }
 
 function setLoading(on) {
-  const b = document.getElementById('submitBtn');
+  const b = document.getElementById('nextBtn');
   b.disabled = on;
   b.innerHTML = on ? '<span class="spinner"></span>Submitting…' : 'Find my discount';
 }
@@ -576,9 +592,9 @@ function showRetry() {
 function money(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: (n % 1 ? 2 : 0), maximumFractionDigits: 2 }); }
 function showResult(code, offer) {
   document.getElementById('discountForm').hidden = true;
+  const pw = document.querySelector('.progress-wrap'); if (pw) pw.style.display = 'none';
   document.getElementById('resultCode').textContent = code;
   document.getElementById('resultHeadline').textContent = offer.headline || '';
-
   const sitesEl = document.getElementById('resultSites');
   sitesEl.innerHTML = (offer.sites || []).map((site) => {
     const rows = (site.plans || []).map((p) =>
@@ -590,22 +606,16 @@ function showResult(code, offer) {
     ).join('');
     return '<div class="offer-site"><h3>' + escapeHtml(site.name) + '</h3>' + rows + '</div>';
   }).join('');
-
   const extra = document.getElementById('resultExtra');
-  extra.textContent = offer.extraNote || '';
-  extra.hidden = !offer.extraNote;
-
+  extra.textContent = offer.extraNote || ''; extra.hidden = !offer.extraNote;
   const warn = document.getElementById('resultWarnings');
   if (offer.warnings && offer.warnings.length) {
     const icons = ['⚠️', '🚨'];
     warn.innerHTML = offer.warnings.map((w, i) => '<li>' + (icons[i] || '•') + ' ' + escapeHtml(w) + '</li>').join('');
     warn.hidden = false;
   } else { warn.hidden = true; }
-
   document.getElementById('resultValidity').textContent = offer.validityNote || '';
-
-  const card = document.getElementById('resultCard');
-  card.hidden = false; card.focus();
+  const card = document.getElementById('resultCard'); card.hidden = false; card.focus();
 }
 async function copyCode() {
   const code = document.getElementById('resultCode').textContent;
@@ -617,9 +627,10 @@ async function copyCode() {
 
 /* ── Init ── */
 window.addEventListener('load', () => {
-  renderForm();
-  document.getElementById('consent').addEventListener('change', recompute);
-  document.getElementById('discountForm').addEventListener('submit', submitForm);
+  buildSteps();
+  showStep(firstVisible(0, 1));
+  document.getElementById('discountForm').addEventListener('submit', (e) => { e.preventDefault(); goNext(); });
+  document.getElementById('backBtn').addEventListener('click', goBack);
   document.getElementById('copyBtn').addEventListener('click', copyCode);
 });
 </script>
