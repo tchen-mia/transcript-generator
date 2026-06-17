@@ -74,7 +74,8 @@ body {
 
 /* Intro / info block */
 .intro-states { font-weight: 600; color: var(--text); }
-.link-row { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.link-row { margin: 8px 0 12px; display: flex; flex-direction: column; gap: 6px; }
+.link-row a { font-size: 13px; }
 .link-row a, .note a { color: var(--teal-dark); text-underline-offset: 3px; }
 
 /* Fields */
@@ -537,6 +538,7 @@ function validateStep(i) {
     const s = document.getElementById('errorSummary');
     s.textContent = 'Please complete the highlighted ' + (count === 1 ? 'item' : 'items') + '.';
     s.hidden = false;
+    s.scrollIntoView({ block: 'center', behavior: 'smooth' });
     const el = document.getElementById('f-' + firstBad) || document.getElementById(firstBad);
     if (el && el.focus) el.focus();
     return false;
@@ -572,11 +574,19 @@ async function doSubmit() {
   setLoading(true);
   try {
     const res = await fetch(SUBMIT_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    if (!res.ok) throw new Error('status ' + res.status);
-    const data = await res.json();
-    if (!data || !data.ok || !data.code) throw new Error('bad response');
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data || !data.ok || !data.code) {
+      showRetry(data && data.error === 'server_misconfigured'
+        ? 'The discount service isn’t finished setting up yet. Please try again shortly.'
+        : null);
+      return;
+    }
     showResult(data.code, data.offer || {});
-  } catch (err) { showRetry(); } finally { setLoading(false); }
+  } catch (err) {
+    showRetry();
+  } finally {
+    setLoading(false);
+  }
 }
 
 function setLoading(on) {
@@ -584,10 +594,11 @@ function setLoading(on) {
   b.disabled = on;
   b.innerHTML = on ? '<span class="spinner"></span>Submitting…' : 'Find my discount';
 }
-function showRetry() {
+function showRetry(msg) {
   const s = document.getElementById('errorSummary');
-  s.textContent = 'Sorry — we couldn’t reach the server. Please try again.';
+  s.textContent = msg || 'Sorry — we couldn’t reach the server. Please try again.';
   s.hidden = false;
+  s.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 function money(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: (n % 1 ? 2 : 0), maximumFractionDigits: 2 }); }
 function showResult(code, offer) {
