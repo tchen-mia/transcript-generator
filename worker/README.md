@@ -3,11 +3,11 @@
 Receives submissions from `discount.html` (on `resources.miacademy.co`), resolves the
 discount offer **server-side**, and writes each submission to Airtable.
 
-- **All discount content — codes, pricing, and income thresholds — lives in the
-  `DISCOUNT_CONFIG` secret, NOT in this repo.** `src/index.js` contains only logic.
-  The real values are kept in a gitignored `offers.config.json` (your local editing
-  source) and pushed to Cloudflare as a secret.
-- The Airtable token is also a **Worker secret**, never in code or the page.
+- **All discount content — codes, pricing, and income thresholds — lives in
+  `offers.config.js`, NOT in this repo.** `src/index.js` contains only logic.
+  That file is **gitignored** and **bundled into the Worker at deploy** (it can't be
+  a Cloudflare secret — those are capped at ~5 kB and the config is larger).
+- The Airtable token is a **Worker secret**, never in code or the page.
 
 ## One-time setup
 
@@ -20,20 +20,19 @@ discount offer **server-side**, and writes each submission to Airtable.
    `Submission ID` (mark **unique**), `Consent` (checkbox), `Consent Version`,
    `Client Time` (date-time), `Received At` (date-time), `Answers JSON` (long text).
 3. **Create a least-privilege Airtable PAT** scoped to just this base with `data.records:write`.
-4. **Build the discount config**: copy `offers.config.example.json` to
-   `offers.config.json` (gitignored) and fill in the real codes + pricing.
+4. **Build the discount config**: copy `offers.config.example.js` to
+   `offers.config.js` (gitignored) and fill in the real codes + pricing.
 
 ## Deploy
 
 ```sh
 cd worker
 npm i -g wrangler          # if not installed
-wrangler deploy            # prints the *.workers.dev URL
-wrangler secret put AIRTABLE_TOKEN                 # paste the PAT (NOT committed)
-wrangler secret put DISCOUNT_CONFIG < offers.config.json   # push codes+pricing as a secret
+wrangler deploy            # bundles offers.config.js; prints the *.workers.dev URL
+wrangler secret put AIRTABLE_TOKEN     # paste the PAT (NOT committed)
 ```
 
-Re-run the `DISCOUNT_CONFIG` command whenever you change codes or pricing.
+**Whenever you change codes or pricing**, edit `offers.config.js` and re-run `wrangler deploy`.
 
 Note the deployed URL (e.g. `https://discount-form-worker.<acct>.workers.dev`). The page's
 `SUBMIT_ENDPOINT` and CSP `connect-src` must use `<that-host>/submit`. Do **not** route the Worker

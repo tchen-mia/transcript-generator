@@ -3,9 +3,7 @@
 
 AIRTABLE_TOKEN=your-airtable-personal-access-token
 
-# All discount codes + pricing live here as a single JSON string (one line for .dev.vars).
-# In production this is set with: wrangler secret put DISCOUNT_CONFIG < offers.config.json
-# For local dev, paste the minified JSON on one line:
-DISCOUNT_CONFIG={"codes":{...},"warnings":[...],"validity":"...","income":{...},"offers":{...}}
+# Discount codes + pricing are NOT a secret here — they live in offers.config.js
+# (gitignored) and are bundled into the Worker at deploy.
 
 # TURNSTILE_SECRET=your-turnstile-secret   # only if TURNSTILE_ENABLED=true

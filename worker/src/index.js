@@ -8,6 +8,11 @@
 //
 // Secrets (wrangler secret put): AIRTABLE_TOKEN, [TURNSTILE_SECRET]
 // Vars (wrangler.jsonc): AIRTABLE_BASE_ID, AIRTABLE_TABLE, ALLOWED_ORIGIN, TURNSTILE_ENABLED
+//
+// Discount codes + pricing come from offers.config.js (gitignored, bundled at
+// deploy) — kept out of this public repo. See offers.config.example.js.
+
+import OFFERS_CONFIG from '../offers.config.js';
 
 'use strict';
 
@@ -23,7 +28,7 @@ const LIMITS = {
 
 /* ════════════════════════════════════════════════════════════════════════
    DISCOUNT RESOLUTION  (server-side — codes, pricing, and thresholds come from
-   the DISCOUNT_CONFIG secret and never ship to the browser or this repo).
+   offers.config.js and never ship to the browser or this public repo).
    `resolveOffer(answers, cfg)` returns { code, offer }, where `offer` is the
    full display payload the page renders (headline, per-site pricing, warnings).
 
@@ -36,16 +41,12 @@ const LIMITS = {
    ════════════════════════════════════════════════════════════════════════ */
 
 /* All discount content — codes, pricing tables, income thresholds, and copy —
-   lives OUTSIDE this (public) repo, in the DISCOUNT_CONFIG secret (set via
-   `wrangler secret put DISCOUNT_CONFIG`). This file holds only logic. The shape
-   is documented in offers.config.example.json. */
-function getConfig(env) {
-  try {
-    const c = JSON.parse(env.DISCOUNT_CONFIG);
-    return (c && c.codes && c.offers && c.income) ? c : null;
-  } catch {
-    return null;
-  }
+   lives in offers.config.js (gitignored, bundled into the Worker at deploy), so
+   it stays out of this public repo. This file holds only logic. The shape is
+   documented in offers.config.example.js. */
+function getConfig() {
+  const c = OFFERS_CONFIG;
+  return (c && c.codes && c.offers && c.income) ? c : null;
 }
 
 const SITE_SCOPE = { k8: 'K-8 sites', '7-12': 'MiaPrep site', both: 'K-8 & MiaPrep sites' };
@@ -265,9 +266,9 @@ export default {
     if (errors.length) return json(400, { ok: false, error: 'validation_failed', fields: errors }, cors);
 
     // Resolve the discount offer server-side (codes/pricing/rules never leave the Worker).
-    const cfg = getConfig(env);
+    const cfg = getConfig();
     if (!cfg) {
-      console.error('config_missing_or_invalid'); // DISCOUNT_CONFIG secret not set / malformed
+      console.error('config_missing_or_invalid'); // offers.config.js missing/malformed at deploy
       return json(500, { ok: false, error: 'server_misconfigured' }, cors);
     }
     const { code, offer } = resolveOffer(value.answers, cfg);
