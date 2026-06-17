@@ -1,8 +1,6 @@
-# Transcript & Certificate Generators
+# Miacademy Resource Tools
 
-Two free, browser-based tools for homeschool families to create a printable
-**homeschool transcript** or **certificate of completion** and download it as a
-PDF. No account, no sign-up.
+Free, browser-based tools for homeschool families, hosted as a static site.
 
 ## Repository contents
 
@@ -10,6 +8,9 @@ PDF. No account, no sign-up.
 | --- | --- |
 | `transcript.html` | Homeschool transcript generator |
 | `certificate.html` | Certificate of completion generator |
+| `discount.html` | Subscription discount finder (submits to the Worker — see below) |
+| `worker/` | Cloudflare Worker that resolves the discount code and stores submissions in Airtable |
+| `fonts/`, `vendor/` | Self-hosted fonts and libraries |
 | `CNAME` | Custom domain for static hosting |
 | `.gitignore` | — |
 
@@ -22,15 +23,19 @@ with no build step or dependencies to install.
 
 ## Architecture
 
-- **Fully client-side / static.** There is no backend or server-side component.
-- The form fields drive a **live preview**, and the PDF is generated **entirely
-  in the browser** using jsPDF and html2canvas (plus jsPDF-AutoTable for the
-  transcript's course table).
+- **`transcript.html` / `certificate.html`: fully client-side / static.** No
+  backend. The form fields drive a **live preview**, and the PDF is generated
+  **entirely in the browser** using jsPDF and html2canvas (plus jsPDF-AutoTable
+  for the transcript's course table).
+- **`discount.html`: static page + one backend endpoint.** A data-driven
+  branching form (questions, visibility, and validation live in the page) that
+  POSTs to the **Cloudflare Worker** in `worker/`; the Worker resolves the
+  discount offer and writes the submission to Airtable.
 
 ## Privacy & data handling
 
-These tools are designed so that information entered by the user **never leaves
-the browser**:
+**`transcript.html` and `certificate.html`** are designed so that information
+entered by the user **never leaves the browser**:
 
 - **No storage.** Nothing is written to `localStorage`, `sessionStorage`,
   cookies, or any other persistence — entered data is held only in memory and is
@@ -39,6 +44,21 @@ the browser**:
   submission; the page does not send entered data anywhere.
 - **Local PDF generation.** The PDF is rendered and saved directly by the
   browser.
+
+**`discount.html` is different — it intentionally collects and transmits PII.**
+To return a personalized discount and record the request, it POSTs the entered
+data (name, email, and eligibility answers) to the Cloudflare Worker in
+`worker/`, which stores it in Airtable. Specifics:
+
+- A **required consent checkbox** + privacy notice gates submission.
+- The discount **codes, pricing, and qualification rules are resolved
+  server-side** in the Worker and never appear in the page source.
+- The page's CSP `connect-src` is extended to allow **only** the Worker origin
+  (plus analytics); no cookies are sent; submissions are de-duplicated by a
+  client-generated `submissionId`.
+- A honeypot field deters bots (optional Cloudflare Turnstile can be enabled).
+- The **Airtable token lives only as a Worker secret** — never in the page or repo.
+- See `worker/README.md` for deploy + configuration.
 
 ### Third-party resources
 

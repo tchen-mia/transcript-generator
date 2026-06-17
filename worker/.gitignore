@@ -1,0 +1,6 @@
+node_modules/
+.wrangler/
+.dev.vars
+# Real discount codes + pricing — must NOT be committed. Lives in the
+# DISCOUNT_CONFIG Cloudflare secret; this file is just the local editing source.
+offers.config.json
