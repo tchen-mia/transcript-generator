@@ -48,8 +48,9 @@ user-entered information:**
 - **PDF libraries** (jsPDF, html2canvas, jsPDF-AutoTable) are **self-hosted**
   in `vendor/` and loaded same-origin with Subresource Integrity (`integrity`)
   hashes — no third-party CDN is involved in delivering executable code.
-- **Web fonts** are loaded from a public font host (which sees only standard
-  request metadata, e.g. IP/referrer).
+- **Web fonts** are **self-hosted** in `fonts/` and served same-origin — there
+  are no requests to Google Fonts (or any third party), so no visitor IP is
+  exposed for font delivery.
 - **Privacy-focused, cookieless analytics** records anonymous page views and a
   single "download" event. Only the event name is recorded — no field values.
 

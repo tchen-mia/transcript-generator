@@ -7,7 +7,7 @@
   <!-- Content-Security-Policy: scripts may load only from this origin (the self-hosted,
        pinned libraries) and the analytics host; connect-src is locked down so no script —
        even a compromised one — can send entered data to any other destination. -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob:; connect-src 'self' https://cloud.umami.is https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://cloud.umami.is https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'none'" />
   <title>Homeschool Transcript Generator | Miacademy</title>
   <meta name="description" content="Free homeschool transcript generator for Miacademy families. Enter your student's courses and download a professional PDF transcript — no account required." />
   <meta property="og:title" content="Homeschool Transcript Generator | Miacademy" />
@@ -16,9 +16,8 @@
 
   <script defer src="https://cloud.umami.is/script.js" data-website-id="b2904601-ceab-4fbd-84a0-8db0d586a9d3" referrerpolicy="no-referrer"></script>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Self-hosted fonts (no third-party requests to Google). -->
+  <link rel="stylesheet" href="fonts/fonts.css" />
   <style>
     :root {
       --teal:       #25B4AD;
