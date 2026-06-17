@@ -448,7 +448,9 @@ function buildSteps() {
       card.innerHTML = '<div class="step-label">Certification</div>' +
         '<label class="consent"><input type="checkbox" id="consent">' +
         '<span>I certify that the information I have provided is accurate to the best of my knowledge. Submitting will log my responses and calculate my best rate. (<a href="https://miacademy.co/help/privacy" target="_blank" rel="noopener">how we use your information</a>)</span></label>' +
-        '<div class="field-error" id="err-consent" hidden></div>';
+        '<div class="field-error" id="err-consent" hidden></div>' +
+        '<label class="consent" style="margin-top:14px;"><input type="checkbox" id="emailOptIn">' +
+        '<span>Email my discount code to me at the address I provided.</span></label>';
     } else {
       step.qids.forEach((id) => {
         const q = QBYID[id];
@@ -566,6 +568,7 @@ async function doSubmit() {
     answers: visibleAnswers(),
     consent: true,
     consentVersion: CONSENT_VERSION,
+    emailCode: !!(document.getElementById('emailOptIn') && document.getElementById('emailOptIn').checked),
     company: '',
     turnstileToken: null,
     pageUrl: location.href,

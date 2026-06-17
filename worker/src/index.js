@@ -149,6 +149,8 @@ function validate(body) {
   if (body.consent !== true) errors.push('consent');
   else out.consent = true;
 
+  out.emailCode = body.emailCode === true; // optional email opt-in flag
+
   if (typeof body.answers !== 'object' || body.answers === null || Array.isArray(body.answers)) {
     errors.push('answers');
   } else if (JSON.stringify(body.answers).length > LIMITS.answersJson) {
@@ -203,7 +205,8 @@ async function writeToAirtable(value, code, env) {
     'Income-Based': yesNo(a.incomeBased),
     'State': STATE_LABEL[a.location] || a.location || '',
     'Declaration': value.consent === true ? 'I accept' : '',
-    'Send Code': code,
+    'Discount Code': code,
+    'Send Code': value.emailCode === true ? 'Yes' : 'No', // email opt-in flag (drives the automation)
   };
   // Only set the Number columns when a number is present (income-based path),
   // so an empty value is never sent to a Number field.
