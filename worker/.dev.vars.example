@@ -1,0 +1,4 @@
+# Local dev for `wrangler dev`. This Worker needs NO secrets — it only resolves
+# the discount offer (codes/pricing come from offers.config.js, bundled at deploy)
+# and stores nothing. This file is kept as a placeholder; copy to `.dev.vars` only
+# if you later add a secret.
