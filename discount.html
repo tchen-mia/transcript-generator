@@ -146,7 +146,9 @@ body {
 .price-unit { color: var(--muted); font-size: 12px; margin-left: 3px; }
 .price-note { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
 .warnings { text-align: left; list-style: none; background: #FFF7ED; border: 1px solid #F6C99166; border-radius: 8px; padding: 12px 16px; margin: 18px 0 0; font-size: 13px; }
-.warnings li { margin: 4px 0; }
+.warnings > li { margin: 6px 0; }
+.add-code-steps { margin: 8px 0 2px; padding-left: 22px; list-style: decimal; }
+.add-code-steps li { margin: 4px 0; }
 
 /* Honeypot — visually hidden but present for naive bots (not display:none) */
 .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
@@ -236,7 +238,7 @@ const OFFERS_CONFIG = {
   },
   "warnings": [
     "Discounts are NOT automatically applied.",
-    "You must copy & paste this code at checkout for each student to enjoy the discount."
+    "You must copy & paste this code at checkout while registering for each student to enjoy the discount."
   ],
   "validity": "Codes are valid for 30 days and cannot be combined with any other offers.",
   "income": {
@@ -623,19 +625,38 @@ const OFFERS_CONFIG = {
 
 /* ── Offer resolution (client-side; codes/pricing are public by design) ── */
 const SITE_SCOPE = { k8: 'K-8 sites', '7-12': 'MiaPrep site', both: 'K-8 & MiaPrep sites' };
-function buildOffer(offerKey, gradeGroup) {
+// Appended to Family Lifetime messaging only when the family has MORE THAN 4 students
+// (the family lifetime covers up to 4 siblings). Email differs by site.
+const ADD_FEE = (email) => ' You can add students for an additional fee of 10% of the regular family lifetime price per additional child. Reach out to our team at ' + email + ' for a quote!';
+const feeEmailForSite = (siteName) => (/miaprep/i.test(siteName) ? 'parents-help@miaprep.com' : 'parents-help@miacademy.co');
+
+function buildOffer(offerKey, gradeGroup, numStudents) {
   const cfg = OFFERS_CONFIG;
   const code = cfg.codes[offerKey];
   const o = cfg.offers[offerKey];
   const g = ['k8', '7-12', 'both'].includes(gradeGroup) ? gradeGroup : 'both';
   const variant = o.variants[g] || o.variants.both || { sites: Object.values(o.variants).flatMap((v) => v.sites) };
-  const extraNote = variant.extraNoteTemplate
+  // Clone so we never mutate the shared config when appending the >4 line.
+  const sites = JSON.parse(JSON.stringify(variant.sites));
+  let extraNote = variant.extraNoteTemplate
     ? variant.extraNoteTemplate.replace('{SINGLE}', cfg.codes.single || '')
     : (variant.extraNote || '');
+
+  if (numStudents === '5plus') {
+    // Append the "additional child" fee line to each Family Lifetime plan note (per-site email)…
+    sites.forEach((site) => {
+      (site.plans || []).forEach((p) => {
+        if (/family lifetime/i.test(p.name)) p.note = (p.note || '') + ADD_FEE(feeEmailForSite(site.name));
+      });
+    });
+    // …and to the siblings extraNote (HOMESCHOOL2026 family lifetime).
+    if (extraNote) extraNote += ADD_FEE('parents-help@miacademy.co');
+  }
+
   return {
     code,
     headline: 'Use your code ' + code + ' to enjoy the following discounted pricing on our ' + (SITE_SCOPE[g] || 'K-8 & MiaPrep sites') + '!',
-    sites: variant.sites,
+    sites,
     extraNote,
     warnings: cfg.warnings || [],
     validityNote: cfg.validity || '',
@@ -653,11 +674,12 @@ function incomeQualifies(income, size, loc) {
 }
 function resolveOffer(answers) {
   const grade = answers.gradeGroup;
-  const multi = answers.numStudents !== '1';
-  if (answers.incomeBased === true && incomeQualifies(answers.householdIncome, answers.householdSize, answers.location)) return buildOffer('lowincome', grade);
-  if (answers.military === true) return buildOffer('military', grade);
-  if (multi) return buildOffer('siblings', grade);
-  return buildOffer('single', grade);
+  const n = answers.numStudents;
+  const multi = n !== '1';
+  if (answers.incomeBased === true && incomeQualifies(answers.householdIncome, answers.householdSize, answers.location)) return buildOffer('lowincome', grade, n);
+  if (answers.military === true) return buildOffer('military', grade, n);
+  if (multi) return buildOffer('siblings', grade, n);
+  return buildOffer('single', grade, n);
 }
 
 
@@ -1001,11 +1023,20 @@ function showResult(code, offer) {
   const extra = document.getElementById('resultExtra');
   extra.textContent = offer.extraNote || ''; extra.hidden = !offer.extraNote;
   const warn = document.getElementById('resultWarnings');
-  if (offer.warnings && offer.warnings.length) {
-    const icons = ['⚠️', '🚨'];
-    warn.innerHTML = offer.warnings.map((w, i) => '<li>' + (icons[i] || '•') + ' ' + escapeHtml(w) + '</li>').join('');
-    warn.hidden = false;
-  } else { warn.hidden = true; }
+  const icons = ['⚠️', '🚨'];
+  const ADD_CODE_INTRO = 'Have a membership with us already? Please add your code by following these steps. Don’t worry, none of your student’s work or progress will be lost or affected by this process!';
+  const ADD_CODE_STEPS = [
+    'Go to your parent account\'s "Students" tab.',
+    'Look for the blue banner at the top showing your child\'s membership status and a black button on the right.',
+    'Click on the black button and follow the instructions to cancel your current subscription.',
+    'Once canceled, you\'ll see a "Reactivate" option in the banner.',
+    'Click "Reactivate" and apply your code during the purchase process.',
+  ];
+  warn.innerHTML =
+    (offer.warnings || []).map((w, i) => '<li>' + (icons[i] || '•') + ' ' + escapeHtml(w) + '</li>').join('') +
+    '<li>ℹ️ ' + escapeHtml(ADD_CODE_INTRO) +
+    '<ol class="add-code-steps">' + ADD_CODE_STEPS.map((s) => '<li>' + escapeHtml(s) + '</li>').join('') + '</ol></li>';
+  warn.hidden = false;
   document.getElementById('resultValidity').textContent = offer.validityNote || '';
   const card = document.getElementById('resultCard'); card.hidden = false; card.focus();
 }
