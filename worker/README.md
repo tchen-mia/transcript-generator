@@ -1,27 +1,20 @@
-# Discount-form intake Worker
+# Discount resolver Worker
 
-Receives submissions from `discount.html` (on `resources.miacademy.co`), resolves the
-discount offer **server-side**, and writes each submission to Airtable.
+Resolves the discount offer for `discount.html` (on `resources.miacademy.co`) and
+returns it. **Stores nothing and sends no email** — it exists only so the codes,
+pricing, and income thresholds stay **server-side** (out of the browser and this
+public repo).
 
-- **All discount content — codes, pricing, and income thresholds — lives in
-  `offers.config.js`, NOT in this repo.** `src/index.js` contains only logic.
-  That file is **gitignored** and **bundled into the Worker at deploy** (it can't be
-  a Cloudflare secret — those are capped at ~5 kB and the config is larger).
-- The Airtable token is a **Worker secret**, never in code or the page.
+- All discount content lives in `offers.config.js` — **gitignored** and **bundled
+  into the Worker at deploy**. `src/index.js` holds only logic. See
+  `offers.config.example.js` for the shape.
+- No secrets required.
 
-## One-time setup
+## Setup
 
-1. **Configure non-secret vars** in `wrangler.jsonc` (already set):
-   - `AIRTABLE_BASE_ID` — `appUBBjmWQs4lJr7q`
-   - `AIRTABLE_TABLE` — `Discount`
-   - `ALLOWED_ORIGIN` — `https://resources.miacademy.co`
-2. **Create the `Discount` table** with these columns:
-   `Email`, `Name`, `Discount Code`, `Form Version`,
-   `Submission ID` (mark **unique**), `Consent` (checkbox), `Consent Version`,
-   `Client Time` (date-time), `Received At` (date-time), `Answers JSON` (long text).
-3. **Create a least-privilege Airtable PAT** scoped to just this base with `data.records:write`.
-4. **Build the discount config**: copy `offers.config.example.js` to
-   `offers.config.js` (gitignored) and fill in the real codes + pricing.
+1. `ALLOWED_ORIGIN` in `wrangler.jsonc` is set to `https://resources.miacademy.co`.
+2. Copy `offers.config.example.js` → `offers.config.js` (gitignored) and fill in the
+   real codes + pricing.
 
 ## Deploy
 
@@ -29,52 +22,25 @@ discount offer **server-side**, and writes each submission to Airtable.
 cd worker
 npm i -g wrangler          # if not installed
 wrangler deploy            # bundles offers.config.js; prints the *.workers.dev URL
-wrangler secret put AIRTABLE_TOKEN     # paste the PAT (NOT committed)
 ```
 
-**Whenever you change codes or pricing**, edit `offers.config.js` and re-run `wrangler deploy`.
+**Whenever codes or pricing change**, edit `offers.config.js` and re-run `wrangler deploy`.
 
-Note the deployed URL (e.g. `https://discount-form-worker.<acct>.workers.dev`). The page's
-`SUBMIT_ENDPOINT` and CSP `connect-src` must use `<that-host>/submit`. Do **not** route the Worker
-on `resources.miacademy.co` (that's the Pages site) — use `*.workers.dev` or a subdomain like `api.`.
-
-## Local dev
-
-```sh
-cp .dev.vars.example .dev.vars   # add your AIRTABLE_TOKEN
-wrangler dev                     # serves on http://localhost:8787
-# serve the static site too: (from repo root) python3 -m http.server 8000
-```
-`http://localhost:8000` is allowlisted for CORS in dev.
+The deployed host must match the page's `SUBMIT_ENDPOINT` and CSP `connect-src`
+(`<host>/submit`). Don't route on `resources.miacademy.co` (that's the Pages site).
 
 ## Verify
 
 ```sh
-HOST=https://discount-form-worker.<acct>.workers.dev   # or http://localhost:8787
+HOST=https://discount-form-worker.<acct>.workers.dev   # or http://localhost:8787 with `wrangler dev`
 
-# Success (expect 200 {ok:true,code,message,id} + Access-Control-Allow-Origin header)
-curl -i -X POST "$HOST/submit" \
-  -H "Content-Type: application/json" \
+# Success (expect 200 {ok:true, code, offer})
+curl -i -X POST "$HOST/submit" -H "Content-Type: application/json" \
   -H "Origin: https://resources.miacademy.co" \
-  -d '{"submissionId":"11111111-1111-4111-8111-111111111111","formVersion":"discount-v1",
-       "timestamp":"2026-06-17T12:00:00.000Z","name":"Test User","email":"test@example.com",
-       "consent":true,"consentVersion":"v1","answers":{"currentlySubscribed":true,"plan":"annual"},"company":""}'
-
-# Preflight (expect 204 + CORS headers)
-curl -i -X OPTIONS "$HOST/submit" -H "Origin: https://resources.miacademy.co" \
-  -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
+  -d '{"answers":{"gradeGroup":"k8","numStudents":"1","incomeBased":false,"military":true}}'
 
 # Negative cases
 curl -i -X GET  "$HOST/submit"   # 405
 curl -i -X POST "$HOST/nope"     # 404
-curl -i -X POST "$HOST/submit" -H "Content-Type: application/json" -d '{bad'   # 400 invalid_json
+curl -i -X POST "$HOST/submit" -H "Content-Type: application/json" -d '{bad'   # 400
 ```
-
-Then confirm a row appears in Airtable with the expected columns populated.
-
-## Turnstile (optional, before wide promotion)
-
-1. Add the Turnstile widget to `discount.html` and send its token as `turnstileToken`.
-2. `wrangler secret put TURNSTILE_SECRET`
-3. Set `TURNSTILE_ENABLED` to `"true"` in `wrangler.jsonc` and redeploy.
-4. Add `https://challenges.cloudflare.com` to the page's CSP `script-src` and `frame-src`.

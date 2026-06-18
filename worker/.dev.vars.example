@@ -1,9 +1,4 @@
-# Copy to `.dev.vars` (gitignored) for local `wrangler dev`. Documents secret NAMES only —
-# never commit real secrets. Set production secrets with `wrangler secret put <NAME>`.
-
-AIRTABLE_TOKEN=your-airtable-personal-access-token
-
-# Discount codes + pricing are NOT a secret here — they live in offers.config.js
-# (gitignored) and are bundled into the Worker at deploy.
-
-# TURNSTILE_SECRET=your-turnstile-secret   # only if TURNSTILE_ENABLED=true
+# Local dev for `wrangler dev`. This Worker needs NO secrets — it only resolves
+# the discount offer (codes/pricing come from offers.config.js, bundled at deploy)
+# and stores nothing. This file is kept as a placeholder; copy to `.dev.vars` only
+# if you later add a secret.

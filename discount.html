@@ -194,9 +194,6 @@ body {
     <!-- Engine renders one step (card) at a time here -->
     <div id="stepContainer"></div>
 
-    <!-- Honeypot (bots only) -->
-    <div class="hp" aria-hidden="true"><label>Company<input type="text" id="hp" name="company" tabindex="-1" autocomplete="off"></label></div>
-
     <div class="step-nav">
       <button type="button" class="btn-secondary" id="backBtn" hidden>← Back</button>
       <button type="submit" class="btn-primary" id="nextBtn" data-umami-event="discount-next">Next</button>
@@ -232,7 +229,6 @@ body {
 /* ── Config (update WORKER host to the deployed Worker; keep CSP connect-src in sync) ── */
 const SUBMIT_ENDPOINT = 'https://discount-form-worker.tchen-f8e.workers.dev/submit';
 const FORM_VERSION    = 'discount-2026-06-17';
-const CONSENT_VERSION = 'certify-v1';
 const STATE_FUNDING_URL = 'https://miacademy.co/homeschool-curriculum/state-funding-for-miacademy/';
 
 /* ── Form definition (mirrors the Typeform pages + branching) ── */
@@ -242,12 +238,6 @@ const QUESTIONS = [
     html: 'Several states offer funding programs that can subsidize some or all of your Miaplaza curriculum costs.',
     statesNote: true,
     links: [{ label: 'Learn about the programs available in your state', url: STATE_FUNDING_URL }] },
-
-  { id: '_contact', type: 'section', label: 'Contact Information',
-    note: 'Name and email of the person completing this form. If you are a current subscriber, please use the email address associated with your account.' },
-  { id: 'firstName', type: 'text',  label: 'First Name', required: true, maxLength: 60 },
-  { id: 'lastName',  type: 'text',  label: 'Last Name',  required: true, maxLength: 60 },
-  { id: 'email',     type: 'email', label: 'Email',      required: true },
 
   { id: '_students', type: 'section', label: 'Your Students' },
   { id: 'gradeGroup', type: 'single', label: 'What grades/ages are your students?',
@@ -369,7 +359,7 @@ function toggleTip(btn) {
 }
 
 /* ── Rendering ── */
-function setAnswer(id, val) { answers[id] = val; }
+function setAnswer(id, val) { answers[id] = val; if (typeof syncNav === 'function') syncNav(); }
 
 function helpAndLinks(q) {
   let h = '';
@@ -426,7 +416,6 @@ function renderQuestionInto(card, q) {
 const QBYID = {}; QUESTIONS.forEach((q) => { QBYID[q.id] = q; });
 const STEPS = [
   { qids: ['_intro'] },
-  { qids: ['_contact', 'firstName', 'lastName', 'email'] },
   { qids: ['_students', 'gradeGroup'] },
   { qids: ['numStudents'] },
   { qids: ['military'] },
@@ -447,10 +436,8 @@ function buildSteps() {
     if (step.kind === 'consent') {
       card.innerHTML = '<div class="step-label">Certification</div>' +
         '<label class="consent"><input type="checkbox" id="consent">' +
-        '<span>I certify that the information I have provided is accurate to the best of my knowledge. Submitting will log my responses and calculate my best rate. (<a href="https://miacademy.co/help/privacy" target="_blank" rel="noopener">how we use your information</a>)</span></label>' +
-        '<div class="field-error" id="err-consent" hidden></div>' +
-        '<label class="consent" style="margin-top:14px;"><input type="checkbox" id="emailOptIn">' +
-        '<span>Send a copy of the discount code to my email.</span></label>';
+        '<span>I certify that the information I have provided is accurate to the best of my knowledge.</span></label>' +
+        '<div class="field-error" id="err-consent" hidden></div>';
     } else {
       step.qids.forEach((id) => {
         const q = QBYID[id];
@@ -487,16 +474,21 @@ function updateProgress() {
   const pct = vis.length ? Math.round(((idx + 1) / vis.length) * 100) : 0;
   const fill = document.getElementById('progressFill'); fill.style.width = pct + '%'; fill.setAttribute('aria-valuenow', String(pct));
 }
-function showStep(i) {
-  curStep = i;
-  document.querySelectorAll('.step').forEach((s) => { s.hidden = Number(s.dataset.step) !== i; });
-  clearErrors();
-  document.getElementById('backBtn').hidden = firstVisible(i - 1, -1) === -1;
-  const last = isLastVisible(i);
+// Refresh Back/Next label + progress for the current step. Called on show AND on
+// answer change, because an answer can change which step is last (branching).
+function syncNav() {
+  document.getElementById('backBtn').hidden = firstVisible(curStep - 1, -1) === -1;
+  const last = isLastVisible(curStep);
   const nextBtn = document.getElementById('nextBtn');
   nextBtn.textContent = last ? 'Find my discount' : 'Next';
   nextBtn.setAttribute('data-umami-event', last ? 'discount-submit' : 'discount-next');
   updateProgress();
+}
+function showStep(i) {
+  curStep = i;
+  document.querySelectorAll('.step').forEach((s) => { s.hidden = Number(s.dataset.step) !== i; });
+  clearErrors();
+  syncNav();
   window.scrollTo({ top: 0, behavior: 'smooth' });
   const sec = document.querySelector('.step[data-step="' + i + '"]');
   const h = sec && sec.querySelector('h2'); if (h) { h.setAttribute('tabindex', '-1'); h.focus(); }
@@ -554,26 +546,10 @@ function visibleAnswers() {
   QUESTIONS.forEach((q) => { if (isInput(q) && isVisible(q) && q.id in answers) out[q.id] = answers[q.id]; });
   return out;
 }
-let submissionId = null;
-function getSubmissionId() { if (!submissionId) submissionId = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.round(Math.random() * 1e9)); return submissionId; }
-
 async function doSubmit() {
-  if (document.getElementById('hp').value) return; // honeypot tripped — silently no-op
-  const payload = {
-    submissionId: getSubmissionId(),
-    formVersion: FORM_VERSION,
-    timestamp: new Date().toISOString(),
-    name: ((answers.firstName || '') + ' ' + (answers.lastName || '')).trim(),
-    email: answers.email || '',
-    answers: visibleAnswers(),
-    consent: true,
-    consentVersion: CONSENT_VERSION,
-    emailCode: !!(document.getElementById('emailOptIn') && document.getElementById('emailOptIn').checked),
-    company: '',
-    turnstileToken: null,
-    pageUrl: location.href,
-    userAgent: navigator.userAgent,
-  };
+  // Anonymous: send only the eligibility answers so the Worker can pick the offer.
+  // No name/email/storage.
+  const payload = { formVersion: FORM_VERSION, answers: visibleAnswers() };
   setLoading(true);
   try {
     const res = await fetch(SUBMIT_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });

@@ -1,23 +1,17 @@
 {
-  // Cloudflare Worker that receives discount-form submissions from the static
-  // page (discount.html on resources.miacademy.co), resolves the discount code
-  // server-side, and writes the submission to Airtable.
+  // Cloudflare Worker that resolves the discount offer server-side for the static
+  // page (discount.html on resources.miacademy.co) and returns it.
+  // Stores nothing, sends no email — it exists only to keep codes/pricing secret.
   //
-  // Deploy:  cd worker && wrangler deploy
-  // Secrets: wrangler secret put AIRTABLE_TOKEN   (and TURNSTILE_SECRET if enabling Turnstile)
+  // Deploy: cd worker && wrangler deploy   (bundles offers.config.js)
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "discount-form-worker",
   "main": "src/index.js",
   "compatibility_date": "2026-06-17",
   "observability": { "enabled": true },
 
-  // Non-secret config (safe to commit). The Airtable PAT is a SECRET — set via
-  // `wrangler secret put AIRTABLE_TOKEN`, never here.
   "vars": {
-    "AIRTABLE_BASE_ID": "appUBBjmWQs4lJr7q",
-    "AIRTABLE_TABLE": "Discount",
-    "ALLOWED_ORIGIN": "https://resources.miacademy.co",
-    "TURNSTILE_ENABLED": "false"                // flip to "true" after adding the widget + secret
+    "ALLOWED_ORIGIN": "https://resources.miacademy.co"
   }
 
   // Optional custom route (do NOT use resources.miacademy.co — that's the Pages site):
