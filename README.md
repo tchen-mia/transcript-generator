@@ -8,8 +8,8 @@ Free, browser-based tools for homeschool families, hosted as a static site.
 | --- | --- |
 | `transcript.html` | Homeschool transcript generator |
 | `certificate.html` | Certificate of completion generator |
-| `discount.html` | Subscription discount finder (submits to the Worker — see below) |
-| `worker/` | Cloudflare Worker that resolves the discount code and stores submissions in Airtable |
+| `discount.html` | Discount finder (asks eligibility questions, shows a code — see below) |
+| `worker/` | Cloudflare Worker that resolves the discount code server-side (stores nothing) |
 | `fonts/`, `vendor/` | Self-hosted fonts and libraries |
 | `CNAME` | Custom domain for static hosting |
 | `.gitignore` | — |
@@ -27,38 +27,29 @@ with no build step or dependencies to install.
   backend. The form fields drive a **live preview**, and the PDF is generated
   **entirely in the browser** using jsPDF and html2canvas (plus jsPDF-AutoTable
   for the transcript's course table).
-- **`discount.html`: static page + one backend endpoint.** A data-driven
-  branching form (questions, visibility, and validation live in the page) that
-  POSTs to the **Cloudflare Worker** in `worker/`; the Worker resolves the
-  discount offer and writes the submission to Airtable.
+- **`discount.html`: static page + a stateless resolver endpoint.** A data-driven
+  branching form (questions, visibility, and validation live in the page) sends the
+  user's **anonymous eligibility answers** to the **Cloudflare Worker** in `worker/`,
+  which resolves the matching discount offer and returns it. The Worker exists only
+  so the discount **codes/pricing stay server-side** — it does not store anything.
 
 ## Privacy & data handling
 
-**`transcript.html` and `certificate.html`** are designed so that information
-entered by the user **never leaves the browser**:
+**No personal data is collected or stored by any of these tools.** They set **no
+cookies** and use **no `localStorage`/`sessionStorage`**.
 
-- **No storage.** Nothing is written to `localStorage`, `sessionStorage`,
-  cookies, or any other persistence — entered data is held only in memory and is
-  gone on refresh.
-- **No transmission.** There are no `fetch`/XHR/WebSocket calls and no form
-  submission; the page does not send entered data anywhere.
-- **Local PDF generation.** The PDF is rendered and saved directly by the
-  browser.
-
-**`discount.html` is different — it intentionally collects and transmits PII.**
-To return a personalized discount and record the request, it POSTs the entered
-data (name, email, and eligibility answers) to the Cloudflare Worker in
-`worker/`, which stores it in Airtable. Specifics:
-
-- A **required consent checkbox** + privacy notice gates submission.
-- The discount **codes, pricing, and qualification rules are resolved
-  server-side** in the Worker and never appear in the page source.
-- The page's CSP `connect-src` is extended to allow **only** the Worker origin
-  (plus analytics); no cookies are sent; submissions are de-duplicated by a
-  client-generated `submissionId`.
-- A honeypot field deters bots (optional Cloudflare Turnstile can be enabled).
-- The **Airtable token lives only as a Worker secret** — never in the page or repo.
-- See `worker/README.md` for deploy + configuration.
+- **`transcript.html` / `certificate.html`** are fully client-side: entered data
+  never leaves the browser (no network submission), and the PDF is generated locally.
+- **`discount.html`** asks only **anonymous eligibility questions** (grade level,
+  number of students, military/income-based status, etc.) — **no name or email.**
+  Those answers are sent to the Worker solely to pick the right discount code, then
+  discarded; **nothing is stored and no email is sent.** A required "I certify the
+  information is accurate" checkbox is an honor-system attestation only.
+- The discount **codes, pricing, and qualification thresholds are resolved
+  server-side** in the Worker and **never appear in the page source or this repo**
+  (they live in a gitignored config bundled into the Worker at deploy).
+- The page's CSP `connect-src` is locked to **only** the Worker origin (plus analytics).
+- The Worker needs **no secrets** and writes to **no database**.
 
 ### Third-party resources
 
