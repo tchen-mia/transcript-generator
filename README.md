@@ -9,7 +9,6 @@ Free, browser-based tools for homeschool families, hosted as a static site.
 | `transcript.html` | Homeschool transcript generator |
 | `certificate.html` | Certificate of completion generator |
 | `discount.html` | Discount finder (asks eligibility questions, shows a code — see below) |
-| `worker/` | Cloudflare Worker that resolves the discount code server-side (stores nothing) |
 | `fonts/`, `vendor/` | Self-hosted fonts and libraries |
 | `CNAME` | Custom domain for static hosting |
 | `.gitignore` | — |
@@ -23,15 +22,15 @@ with no build step or dependencies to install.
 
 ## Architecture
 
-- **`transcript.html` / `certificate.html`: fully client-side / static.** No
-  backend. The form fields drive a **live preview**, and the PDF is generated
-  **entirely in the browser** using jsPDF and html2canvas (plus jsPDF-AutoTable
-  for the transcript's course table).
-- **`discount.html`: static page + a stateless resolver endpoint.** A data-driven
-  branching form (questions, visibility, and validation live in the page) sends the
-  user's **anonymous eligibility answers** to the **Cloudflare Worker** in `worker/`,
-  which resolves the matching discount offer and returns it. The Worker exists only
-  so the discount **codes/pricing stay server-side** — it does not store anything.
+All three tools are **fully client-side / static** — no backend, no server-side code.
+
+- **`transcript.html` / `certificate.html`:** the form fields drive a **live
+  preview**, and the PDF is generated **entirely in the browser** using jsPDF and
+  html2canvas (plus jsPDF-AutoTable for the transcript's course table).
+- **`discount.html`:** a data-driven branching form (questions, visibility, and
+  validation live in the page) that resolves the matching discount offer **in the
+  browser** from a config embedded in the page, and shows the code + pricing. No
+  network request is made when finding a discount.
 
 ## Privacy & data handling
 
@@ -42,14 +41,12 @@ cookies** and use **no `localStorage`/`sessionStorage`**.
   never leaves the browser (no network submission), and the PDF is generated locally.
 - **`discount.html`** asks only **anonymous eligibility questions** (grade level,
   number of students, military/income-based status, etc.) — **no name or email.**
-  Those answers are sent to the Worker solely to pick the right discount code, then
-  discarded; **nothing is stored and no email is sent.** A required "I certify the
-  information is accurate" checkbox is an honor-system attestation only.
-- The discount **codes, pricing, and qualification thresholds are resolved
-  server-side** in the Worker and **never appear in the page source or this repo**
-  (they live in a gitignored config bundled into the Worker at deploy).
-- The page's CSP `connect-src` is locked to **only** the Worker origin (plus analytics).
-- The Worker needs **no secrets** and writes to **no database**.
+  Everything is resolved in the browser; **no submission is sent anywhere**, nothing
+  is stored, and no email is sent. A required "I certify the information is accurate"
+  checkbox is an honor-system attestation only.
+- The discount **codes, pricing, and income thresholds are embedded in the page**
+  (intentionally public — they are marketing offers, not secrets).
+- The CSP `connect-src` allows only the cookieless analytics endpoint.
 
 ### Third-party resources
 

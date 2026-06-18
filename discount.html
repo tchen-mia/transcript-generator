@@ -4,10 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Content-Security-Policy: scripts only from this origin + analytics; connect-src is locked so no
-     script can send page data anywhere except the analytics + the discount-intake Worker.
-     NOTE: replace <WORKER_HOST> with the deployed Worker host (keep in sync with SUBMIT_ENDPOINT). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://cloud.umami.is https://gateway.umami.is https://discount-form-worker.tchen-f8e.workers.dev; object-src 'none'; base-uri 'self'; form-action 'none'">
+<!-- Content-Security-Policy: fully client-side; the only outbound connection is cookieless analytics. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cloud.umami.is; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://cloud.umami.is https://gateway.umami.is; object-src 'none'; base-uri 'self'; form-action 'none'">
 
 <title>Discount Finder | Miacademy</title>
 <meta name="description" content="Find the best Miaplaza subscription discount you qualify for — military, multi-student, and income-based options. For Miacademy families.">
@@ -227,9 +225,441 @@ body {
 'use strict';
 
 /* ── Config (update WORKER host to the deployed Worker; keep CSP connect-src in sync) ── */
-const SUBMIT_ENDPOINT = 'https://discount-form-worker.tchen-f8e.workers.dev/submit';
-const FORM_VERSION    = 'discount-2026-06-17';
 const STATE_FUNDING_URL = 'https://miacademy.co/homeschool-curriculum/state-funding-for-miacademy/';
+
+const OFFERS_CONFIG = {
+  "codes": {
+    "lowincome": "LS5829",
+    "military": "MILITARY2026",
+    "siblings": "SIBLINGS",
+    "single": "HOMESCHOOL2026"
+  },
+  "warnings": [
+    "Discounts are NOT automatically applied.",
+    "You must copy & paste this code at checkout for each student to enjoy the discount."
+  ],
+  "validity": "Codes are valid for 30 days and cannot be combined with any other offers.",
+  "income": {
+    "base": {
+      "48": 43280,
+      "HI": 49780,
+      "AK": 54100
+    },
+    "per": {
+      "48": 11360,
+      "HI": 13060,
+      "AK": 14200
+    }
+  },
+  "offers": {
+    "lowincome": {
+      "variants": {
+        "k8": {
+          "sites": [
+            {
+              "name": "K-8 sites",
+              "plans": [
+                {
+                  "name": "Monthly subscription",
+                  "regular": 48,
+                  "discounted": 31.2,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Annual subscription",
+                  "regular": 504,
+                  "discounted": 277.2,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Individual Lifetime subscription",
+                  "regular": 1168,
+                  "discounted": 759.2,
+                  "unit": "per child",
+                  "note": "Lifetime subscription includes full access to all the content we provide (K-8)."
+                },
+                {
+                  "name": "Family Lifetime subscription",
+                  "regular": 2598,
+                  "discounted": 1688.7,
+                  "unit": "per family",
+                  "note": "Family Lifetime subscription includes full access to all the content we provide (K-8) for up to 4 siblings!"
+                }
+              ]
+            }
+          ]
+        },
+        "7-12": {
+          "sites": [
+            {
+              "name": "MiaPrep site",
+              "plans": [
+                {
+                  "name": "Monthly subscription",
+                  "regular": 54,
+                  "discounted": 35.1,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Annual subscription",
+                  "regular": 558,
+                  "discounted": 306.9,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Individual Lifetime subscription",
+                  "regular": 1098,
+                  "discounted": 713.7,
+                  "unit": "per child",
+                  "note": "Lifetime subscription includes full access to all the content we provide (7-12)."
+                },
+                {
+                  "name": "Family Lifetime subscription",
+                  "regular": 2368,
+                  "discounted": 1539.2,
+                  "unit": "per family",
+                  "note": "Family Lifetime subscription includes full access to all the content we provide (7-12) for up to 4 siblings!"
+                }
+              ]
+            }
+          ]
+        },
+        "both": {
+          "sites": [
+            {
+              "name": "K-8",
+              "plans": [
+                {
+                  "name": "Monthly subscription",
+                  "regular": 48,
+                  "discounted": 31.2,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Annual subscription",
+                  "regular": 504,
+                  "discounted": 277.2,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Individual Lifetime subscription",
+                  "regular": 1168,
+                  "discounted": 759.2,
+                  "unit": "per child",
+                  "note": "Lifetime subscription includes full access to all the content we provide (K-8)."
+                },
+                {
+                  "name": "Family Lifetime subscription",
+                  "regular": 2598,
+                  "discounted": 1688.7,
+                  "unit": "per family",
+                  "note": "Family Lifetime subscription includes full access to all the content we provide (K-8) for up to 4 siblings!"
+                }
+              ]
+            },
+            {
+              "name": "MiaPrep",
+              "plans": [
+                {
+                  "name": "Monthly subscription",
+                  "regular": 54,
+                  "discounted": 35.1,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Annual subscription",
+                  "regular": 558,
+                  "discounted": 306.9,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Family Lifetime subscription",
+                  "regular": 2368,
+                  "discounted": 1539.2,
+                  "unit": "per family",
+                  "note": "Family Lifetime subscription includes full access to all the content we provide (7-12) for up to 4 siblings!"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "military": {
+      "variants": {
+        "k8": {
+          "sites": [
+            {
+              "name": "K-8 sites",
+              "plans": [
+                {
+                  "name": "Monthly subscription",
+                  "regular": 48,
+                  "discounted": 43.2,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Annual subscription",
+                  "regular": 504,
+                  "discounted": 378,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Individual Lifetime subscription",
+                  "regular": 1168,
+                  "discounted": 876,
+                  "unit": "per child",
+                  "note": "Lifetime subscription includes full access to all the content we provide (K-8)."
+                }
+              ]
+            }
+          ]
+        },
+        "7-12": {
+          "sites": [
+            {
+              "name": "MiaPrep site",
+              "plans": [
+                {
+                  "name": "Monthly subscription",
+                  "regular": 54,
+                  "discounted": 48.6,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Annual subscription",
+                  "regular": 558,
+                  "discounted": 418.5,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Individual Lifetime subscription",
+                  "regular": 1098,
+                  "discounted": 823.5,
+                  "unit": "per child",
+                  "note": "Lifetime subscription includes full access to all the content we provide (7-12)."
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "siblings": {
+      "variants": {
+        "k8": {
+          "sites": [
+            {
+              "name": "K-8 sites",
+              "plans": [
+                {
+                  "name": "Monthly subscription",
+                  "regular": 48,
+                  "discounted": 38.4,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Annual subscription",
+                  "regular": 504,
+                  "discounted": 302.4,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Individual Lifetime subscription",
+                  "regular": 1168,
+                  "discounted": 817.6,
+                  "unit": "per child",
+                  "note": "Lifetime subscription includes full access to all the content we provide (K-8)."
+                }
+              ]
+            }
+          ]
+        },
+        "7-12": {
+          "sites": [
+            {
+              "name": "MiaPrep site",
+              "plans": [
+                {
+                  "name": "Monthly subscription",
+                  "regular": 54,
+                  "discounted": 43.2,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Annual subscription",
+                  "regular": 558,
+                  "discounted": 334.8,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Individual Lifetime subscription",
+                  "regular": 1098,
+                  "discounted": 768.6,
+                  "unit": "per child",
+                  "note": "Lifetime subscription includes full access to all the content we provide (7-12)."
+                }
+              ]
+            }
+          ]
+        },
+        "both": {
+          "sites": [
+            {
+              "name": "K-8 Pricing",
+              "plans": [
+                {
+                  "name": "Monthly subscription",
+                  "regular": 48,
+                  "discounted": 38.4,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Annual subscription",
+                  "regular": 504,
+                  "discounted": 302.4,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Individual Lifetime subscription",
+                  "regular": 1168,
+                  "discounted": 817.6,
+                  "unit": "per child",
+                  "note": "Lifetime subscription includes full access to all the content we provide (K-8)."
+                }
+              ]
+            },
+            {
+              "name": "MiaPrep Pricing",
+              "plans": [
+                {
+                  "name": "Monthly subscription",
+                  "regular": 54,
+                  "discounted": 43.2,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Annual subscription",
+                  "regular": 558,
+                  "discounted": 334.8,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Individual Lifetime subscription",
+                  "regular": 1098,
+                  "discounted": 768.6,
+                  "unit": "per child",
+                  "note": "Lifetime subscription includes full access to all the content we provide (7-12)."
+                }
+              ]
+            }
+          ],
+          "extraNoteTemplate": "Or, you can use code {SINGLE} to get a Family Lifetime Subscription. This includes full access for up to 4 siblings."
+        }
+      }
+    },
+    "single": {
+      "variants": {
+        "k8": {
+          "sites": [
+            {
+              "name": "K-8 sites",
+              "plans": [
+                {
+                  "name": "Monthly subscription",
+                  "regular": 48,
+                  "discounted": 43.2,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Annual subscription",
+                  "regular": 504,
+                  "discounted": 403.2,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Individual Lifetime subscription",
+                  "regular": 1168,
+                  "discounted": 934.4,
+                  "unit": "per child",
+                  "note": "Lifetime subscription includes full access to all the content we provide (K-8)."
+                }
+              ]
+            }
+          ]
+        },
+        "7-12": {
+          "sites": [
+            {
+              "name": "MiaPrep site",
+              "plans": [
+                {
+                  "name": "Monthly subscription",
+                  "regular": 54,
+                  "discounted": 48.6,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Annual subscription",
+                  "regular": 558,
+                  "discounted": 446.4,
+                  "unit": "per child"
+                },
+                {
+                  "name": "Individual Lifetime subscription",
+                  "regular": 1098,
+                  "discounted": 878.4,
+                  "unit": "per child",
+                  "note": "Lifetime subscription includes full access to all the content we provide (7-12)."
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
+};
+
+/* ── Offer resolution (client-side; codes/pricing are public by design) ── */
+const SITE_SCOPE = { k8: 'K-8 sites', '7-12': 'MiaPrep site', both: 'K-8 & MiaPrep sites' };
+function buildOffer(offerKey, gradeGroup) {
+  const cfg = OFFERS_CONFIG;
+  const code = cfg.codes[offerKey];
+  const o = cfg.offers[offerKey];
+  const g = ['k8', '7-12', 'both'].includes(gradeGroup) ? gradeGroup : 'both';
+  const variant = o.variants[g] || o.variants.both || { sites: Object.values(o.variants).flatMap((v) => v.sites) };
+  const extraNote = variant.extraNoteTemplate
+    ? variant.extraNoteTemplate.replace('{SINGLE}', cfg.codes.single || '')
+    : (variant.extraNote || '');
+  return {
+    code,
+    headline: 'Use your code ' + code + ' to enjoy the following discounted pricing on our ' + (SITE_SCOPE[g] || 'K-8 & MiaPrep sites') + '!',
+    sites: variant.sites,
+    extraNote,
+    warnings: cfg.warnings || [],
+    validityNote: cfg.validity || '',
+  };
+}
+function incomeThreshold(size, loc) {
+  const cfg = OFFERS_CONFIG;
+  const b = cfg.income.base[loc] != null ? cfg.income.base[loc] : cfg.income.base['48'];
+  const d = cfg.income.per[loc] != null ? cfg.income.per[loc] : cfg.income.per['48'];
+  return b + (Number(size) - 2) * d;
+}
+function incomeQualifies(income, size, loc) {
+  const inc = Number(income);
+  return Number.isFinite(inc) && inc <= incomeThreshold(size, loc);
+}
+function resolveOffer(answers) {
+  const grade = answers.gradeGroup;
+  const multi = answers.numStudents !== '1';
+  if (answers.incomeBased === true && incomeQualifies(answers.householdIncome, answers.householdSize, answers.location)) return buildOffer('lowincome', grade);
+  if (answers.military === true) return buildOffer('military', grade);
+  if (multi) return buildOffer('siblings', grade);
+  return buildOffer('single', grade);
+}
+
 
 /* ── Form definition (mirrors the Typeform pages + branching) ── */
 const STATES = 'AR, AZ, CO, DE, FL, GA, ID, LA, ME, MT, NH, NC, OR, SC, TN, UT, WV';
@@ -546,38 +976,10 @@ function visibleAnswers() {
   QUESTIONS.forEach((q) => { if (isInput(q) && isVisible(q) && q.id in answers) out[q.id] = answers[q.id]; });
   return out;
 }
-async function doSubmit() {
-  // Anonymous: send only the eligibility answers so the Worker can pick the offer.
-  // No name/email/storage.
-  const payload = { formVersion: FORM_VERSION, answers: visibleAnswers() };
-  setLoading(true);
-  try {
-    const res = await fetch(SUBMIT_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-    const data = await res.json().catch(() => null);
-    if (!res.ok || !data || !data.ok || !data.code) {
-      showRetry(data && data.error === 'server_misconfigured'
-        ? 'The discount service isn’t finished setting up yet. Please try again shortly.'
-        : null);
-      return;
-    }
-    showResult(data.code, data.offer || {});
-  } catch (err) {
-    showRetry();
-  } finally {
-    setLoading(false);
-  }
-}
-
-function setLoading(on) {
-  const b = document.getElementById('nextBtn');
-  b.disabled = on;
-  b.innerHTML = on ? '<span class="spinner"></span>Submitting…' : 'Find my discount';
-}
-function showRetry(msg) {
-  const s = document.getElementById('errorSummary');
-  s.textContent = msg || 'Sorry — we couldn’t reach the server. Please try again.';
-  s.hidden = false;
-  s.scrollIntoView({ block: 'center', behavior: 'smooth' });
+function doSubmit() {
+  // Fully client-side: resolve the offer locally and show it. No network call.
+  const offer = resolveOffer(visibleAnswers());
+  showResult(offer.code, offer);
 }
 function money(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: (n % 1 ? 2 : 0), maximumFractionDigits: 2 }); }
 function showResult(code, offer) {
