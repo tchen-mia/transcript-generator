@@ -919,6 +919,10 @@ function renderCal() {
   el.innerHTML = html;
   el.querySelectorAll('.cal-nav').forEach(b => b.addEventListener('mousedown', e => {
     e.preventDefault();
+    // renderCal() below replaces innerHTML, detaching this button from _cal.
+    // Stop propagation so the document mousedown handler doesn't then see the
+    // detached target as an "outside" click and close the calendar.
+    e.stopPropagation();
     _calM += parseInt(b.dataset.nav, 10);
     if (_calM < 0) { _calM = 11; _calY--; }
     if (_calM > 11) { _calM = 0; _calY++; }
